@@ -201,7 +201,7 @@ queue(s,o,w){if(s.parent)o.push(`/queue simple add name=TOTAL target=${s.ptarget
   o.push(`/queue simple add name=${q(x[0])} target=${x[1].includes('/')?x[1]:x[1]+'/32'} max-limit=${x[2]||'1M/1M'}${s.parent?' parent=TOTAL':''}`)}}
 };
 
-function renderTabs(){$('#tabs').innerHTML=M.map(m=>`<button role="tab" data-t="${m.id}" aria-selected="${S.tab==m.id}"><span class="dot${S[m.id].on?' on':''}"></span>${esc(m.name)}</button>`).join('');
+function renderTabs(){const cm=M.find(m=>m.id==S.tab);$('#curMod').textContent=cm.name;$('#onCount').textContent=M.filter(m=>S[m.id].on).length+' aktif';$('#tabs').innerHTML=M.map(m=>`<button role="tab" data-t="${m.id}" aria-selected="${S.tab==m.id}"><span class="dot${S[m.id].on?' on':''}"></span>${esc(m.name)}</button>`).join('');
  document.querySelectorAll('[data-ros]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.ros==S.ros));$('#cmt').checked=S.cmt;$('#safe').checked=S.safe}
 function renderForm(){const m=M.find(x=>x.id==S.tab),s=S[m.id];
  const fl=m.f.filter(f=>!f[5]||f[5](s)).map(([id,lab,t,d,o,h])=>{const fid=`f-${m.id}-${id}`,hint=typeof o=='string'&&o?`<span class="hint">${esc(o)}</span>`:'',v=s[id];
@@ -225,7 +225,12 @@ function renderOut(){let o=[];const w=[];const on=M.filter(m=>S[m.id].on);X={ppp
  const act=M.filter(m=>S[m.id].on).map(m=>m.id).join();
  document.querySelectorAll('[data-p]').forEach(b=>b.setAttribute('aria-pressed',M.map(m=>m.id).filter(id=>PRESET[b.dataset.p].includes(id)).join()==act));save()}
 
-$('#tabs').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;S.tab=b.dataset.t;renderTabs();renderForm();save()});
+const drw=$('#drawer'),scr=$('#scrim'),mb=$('#menuBtn');
+function menu(open){drw.classList.toggle('open',open);scr.hidden=!open;mb.setAttribute('aria-expanded',open);if(open)drw.querySelector('[aria-selected=true]')?.focus();else if(matchMedia('(max-width:900px)').matches)mb.focus()}
+mb.addEventListener('click',()=>menu(!drw.classList.contains('open')));
+$('#closeBtn').addEventListener('click',()=>menu(false));scr.addEventListener('click',()=>menu(false));
+document.addEventListener('keydown',e=>{if(e.key=='Escape'&&drw.classList.contains('open'))menu(false)});
+$('#tabs').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;S.tab=b.dataset.t;renderTabs();renderForm();save();if(drw.classList.contains('open')){menu(false);$('#form').scrollIntoView({block:'start'})}});
 document.querySelectorAll('[data-ros]').forEach(b=>b.addEventListener('click',()=>{S.ros=b.dataset.ros;renderTabs();renderOut()}));
 $('#cmt').addEventListener('change',e=>{S.cmt=e.target.checked;renderOut()});
 $('#safe').addEventListener('change',e=>{S.safe=e.target.checked;renderOut()});
