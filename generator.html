@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Generator Skrip MikroTik</title>
+<meta name="description" content="Buat skrip RouterOS untuk PPPoE, hotspot, load balance, firewall, VLAN dan queue.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23e8251a'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<header class="nav"><div class="in"><a class="brand" href="index.html"><i></i>Skrip Generat</a><nav class="links"><a href="index.html">Beranda</a><a href="generator.html" aria-current="page">Generator</a><a href="panduan.html">Panduan</a></nav></div></header>
+
+<header class="top">
+  <div><h1>Generator skrip</h1><p>Isi form per modul, skrip RouterOS langsung jadi. Tempel di Terminal Winbox atau jalankan sebagai file .rsc.</p></div>
+  <div class="glob">
+    <div class="seg" role="group" aria-label="Versi RouterOS"><button data-ros="6">RouterOS v6</button><button data-ros="7">RouterOS v7</button></div>
+    <label class="chk sw"><input type="checkbox" id="cmt"> Komentar</label>
+  </div>
+</header>
+<nav class="tabs" id="tabs" role="tablist"></nav>
+<main>
+  <section class="card" id="form"></section>
+  <section class="out" aria-label="Hasil skrip">
+    <div class="obar"><div><b>Skrip .rsc</b> <span id="meta"></span></div><div class="acts"><button class="btn2" id="dl">Unduh .rsc</button><button class="copy" id="copy">Salin skrip</button></div></div>
+    <ul class="warn" id="warn"></ul>
+    <pre id="pre"></pre>
+  </section>
+</main>
+<p class="note">Cek dulu sebelum dijalankan di router produksi: nama interface, IP, dan pastikan akses remote (Winbox, tunnel, VPN) tidak ikut terblokir firewall. Backup dulu dengan <code>/export file=backup-awal</code>.</p>
+<footer class="foot"><div class="in"><span>Skrip Generat · generator skrip MikroTik RouterOS v6 dan v7</span><span>Semua skrip dibuat di browser Anda, tidak ada data yang dikirim ke server.</span></div></footer>
+<script src="assets/app.js"></script>
+</body>
+</html>

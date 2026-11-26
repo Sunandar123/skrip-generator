@@ -1,0 +1,53 @@
+/* Bagian bersama: navigasi, footer, halaman depan, panduan */
+.nav{background:#0c0e10;color:#fff}
+.nav .in{max-width:1400px;margin:auto;padding:0 max(4vw,16px);display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:60px;flex-wrap:wrap;padding-block:8px}
+.brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font:700 18px "Inter Tight",Inter,sans-serif}
+.brand i{width:12px;height:12px;border-radius:3px;background:var(--red);display:block}
+.links{display:flex;gap:4px;flex-wrap:wrap}
+.links a{color:#c9d2d9;text-decoration:none;font:500 15px Inter;padding:0 12px;min-height:44px;display:flex;align-items:center;border-radius:8px}
+.links a:hover{color:#fff;background:#1c2024}.links a[aria-current=page]{color:#fff;box-shadow:inset 0 -3px 0 var(--red)}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.btn2{background:#262b30;color:#fff;border:1px solid #3a4148;font:600 15px Inter;min-height:44px;padding:0 16px;border-radius:9px;cursor:pointer}
+.foot{background:#0c0e10;color:#8d99a3;font-size:14px}
+.foot .in{max-width:1400px;margin:auto;padding:24px max(4vw,16px);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.foot a{color:#c9d2d9}
+.wrap{max-width:1240px;margin:auto}
+/* halaman depan */
+.hero{background:#0c0e10;color:#eef1f3;padding:clamp(36px,6vw,80px) max(4vw,16px) clamp(40px,6vw,88px)}
+.hero .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:clamp(24px,4vw,56px);align-items:center}
+.hero h1{font-size:clamp(34px,5vw,52px);color:#fff}
+.hero p{color:#b5c0c8;font-size:17px;max-width:46ch;margin:18px 0 26px}
+.cta{display:inline-flex;align-items:center;background:var(--red);color:#fff;text-decoration:none;font:600 16px Inter;min-height:48px;padding:0 22px;border-radius:10px}
+.ghost{display:inline-flex;align-items:center;color:#fff;text-decoration:none;font:600 16px Inter;min-height:48px;padding:0 18px;border-radius:10px;border:1px solid #3a4148;margin-left:8px}
+.term{background:#15181b;border:1px solid #2a3035;border-radius:14px;overflow:hidden;box-shadow:0 30px 60px -30px #000}
+.term .bar{display:flex;gap:7px;padding:12px 14px;border-bottom:1px solid #2a3035}
+.term .bar i{width:11px;height:11px;border-radius:50%;background:#3a4148}.term .bar i:first-child{background:var(--red)}
+.term pre{max-height:none;font-size:13px;color:#d6e0e7}
+.term .k{color:#ff6a5f}.term .c{color:#7f8c96}.term .cur{display:inline-block;width:8px;height:15px;background:#d6e0e7;vertical-align:-2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+@media(prefers-reduced-motion:reduce){.term .cur{animation:none}}
+.sec{padding:clamp(36px,5vw,72px) max(4vw,16px)}
+.sec h2{font-size:clamp(26px,3.4vw,36px);margin-bottom:8px}
+.lead{color:var(--mut);margin:0 0 26px;max-width:62ch}
+.mods{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.mod{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px}
+.mod b{font:600 17px "Inter Tight",Inter;display:block;margin-bottom:6px}
+.mod span{color:var(--mut);font-size:15px}
+.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;counter-reset:s}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;counter-increment:s}
+.step::before{content:counter(s);display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--ink);color:var(--panel);font:700 16px "Inter Tight";margin-bottom:10px}
+.step b{display:block;margin-bottom:4px}.step span{color:var(--mut);font-size:15px}
+.alt{background:var(--panel);border-block:1px solid var(--line)}
+/* panduan */
+.doc{max-width:780px;margin:auto;padding:clamp(28px,4vw,56px) max(4vw,16px) 56px}
+.doc h1{font-size:clamp(30px,4vw,42px);margin-bottom:10px}
+.doc h2{font-size:24px;margin:40px 0 10px}
+.doc p,.doc li{font-size:16.5px}
+.doc pre{background:#0c0e10;color:#d6e0e7;border-radius:10px;padding:14px 16px;font:13.5px/1.6 "JetBrains Mono",monospace;max-height:none}
+.doc code{font:14px "JetBrains Mono",monospace;background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+.doc pre code{background:none;border:0;padding:0;font:inherit}
+.toc{display:flex;gap:6px;overflow-x:auto;padding:4px 0 8px}
+.toc a{flex:none;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:0 14px;min-height:40px;display:flex;align-items:center;text-decoration:none;font-size:14px}
+.box{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--red);border-radius:8px;padding:12px 16px;margin:16px 0}
+@media(max-width:900px){.hero .wrap{grid-template-columns:minmax(0,1fr)}.steps{grid-template-columns:minmax(0,1fr)}}
+@media(min-width:901px){.toc{position:sticky;top:0;background:var(--bg);z-index:2}}

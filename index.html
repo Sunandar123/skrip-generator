@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Skrip Generat — Generator MikroTik</title>
+<meta name="description" content="Generator skrip MikroTik untuk RT/RW net: PPPoE, hotspot voucher, load balance PCC, firewall, VLAN.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23e8251a'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<header class="nav"><div class="in"><a class="brand" href="index.html"><i></i>Skrip Generat</a><nav class="links"><a href="index.html" aria-current="page">Beranda</a><a href="generator.html">Generator</a><a href="panduan.html">Panduan</a></nav></div></header>
+<section class="hero"><div class="wrap">
+  <div>
+    <h1>Skrip MikroTik siap tempel, tanpa ngetik ulang</h1>
+    <p>Isi form, pilih RouterOS v6 atau v7, lalu salin atau unduh file .rsc. Dibuat untuk kebutuhan RT/RW net: PPPoE pelanggan, voucher hotspot, load balance, sampai firewall.</p>
+    <a class="cta" href="generator.html">Buka generator</a><a class="ghost" href="panduan.html">Cara pakai</a>
+  </div>
+  <div class="term" aria-hidden="true"><div class="bar"><i></i><i></i><i></i></div>
+<pre><span class="k"># ===== PPPOE SERVER =====</span>
+/ip pool add name=pool-pppoe ranges=10.10.10.2-10.10.10.254
+/ppp profile add name=PAKET-10M local-address=10.10.10.1 \
+    remote-address=pool-pppoe rate-limit=10M/10M only-one=yes
+/interface pppoe-server server add service-name=pppoe-rtrw \
+    interface=ether4 default-profile=PAKET-10M disabled=no
+<span class="c"># akun pelanggan</span>
+/ppp secret add name="plg001" password="k7m2xq9a" profile=PAKET-10M
+/ppp secret add name="plg002" password="r4tz8np3" profile=PAKET-10M
+<span class="k"># ===== FIREWALL =====</span>
+/ip firewall filter add chain=input action=drop \
+    in-interface-list=WAN protocol=udp dst-port=53
+<span class="cur"></span></pre></div>
+</div></section>
+<section class="sec"><div class="wrap">
+  <h2>Tujuh modul, satu skrip</h2>
+  <p class="lead">Nyalakan modul yang dibutuhkan saja. Semua digabung jadi satu skrip berurutan dengan komentar per bagian.</p>
+  <div class="mods">
+    <div class="mod"><b>Dasar</b><span>Identity, NTP, WAN DHCP/statis/PPPoE client, bridge LAN, DHCP server, DNS, NAT.</span></div>
+    <div class="mod"><b>PPPoE Server</b><span>Profil paket dengan rate-limit, akun pelanggan massal, profil isolir dan redirect halaman.</span></div>
+    <div class="mod"><b>Hotspot</b><span>Server hotspot, profil user, voucher acak dengan limit-uptime.</span></div>
+    <div class="mod"><b>Load Balance PCC</b><span>Dua WAN atau lebih, bobot per ISP, failover otomatis dengan check-gateway.</span></div>
+    <div class="mod"><b>Firewall</b><span>Tutup input dari WAN, blok open resolver DNS, matikan layanan tak terpakai.</span></div>
+    <div class="mod"><b>VLAN</b><span>Banyak VLAN sekaligus, lengkap dengan IP, pool dan DHCP server.</span></div>
+    <div class="mod"><b>Simple Queue</b><span>Limit per IP atau subnet, dengan queue induk TOTAL bila perlu.</span></div>
+  </div>
+</div></section>
+<section class="sec alt"><div class="wrap">
+  <h2>Tiga langkah</h2>
+  <p class="lead">Dari form sampai jalan di router.</p>
+  <div class="steps">
+    <div class="step"><b>Isi form</b><span>Sesuaikan nama interface, IP dan paket dengan router Anda.</span></div>
+    <div class="step"><b>Cek peringatan</b><span>Kotak merah menandai isian salah atau pengaturan yang berisiko.</span></div>
+    <div class="step"><b>Tempel atau import</b><span>Salin ke Terminal Winbox, atau unduh .rsc lalu jalankan /import.</span></div>
+  </div>
+</div></section>
+<footer class="foot"><div class="in"><span>Skrip Generat · generator skrip MikroTik RouterOS v6 dan v7</span><span>Semua skrip dibuat di browser Anda, tidak ada data yang dikirim ke server.</span></div></footer>
+</body>
+</html>

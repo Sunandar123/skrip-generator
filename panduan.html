@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Panduan — Skrip Generat</title>
+<meta name="description" content="Cara menjalankan skrip MikroTik hasil generator: terminal, import .rsc, dan catatan per modul.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23e8251a'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<header class="nav"><div class="in"><a class="brand" href="index.html"><i></i>Skrip Generat</a><nav class="links"><a href="index.html">Beranda</a><a href="generator.html">Generator</a><a href="panduan.html" aria-current="page">Panduan</a></nav></div></header>
+<main class="doc">
+<h1>Panduan memakai skrip</h1>
+<p>Skrip hasil generator adalah perintah RouterOS biasa. Ada dua cara menjalankannya, dan satu kebiasaan yang wajib: backup dulu.</p>
+<nav class="toc" aria-label="Isi panduan"><a href="#backup">Backup</a><a href="#terminal">Lewat terminal</a><a href="#import">Import .rsc</a><a href="#modul">Catatan modul</a><a href="#versi">v6 dan v7</a></nav>
+
+<h2 id="backup">1. Backup konfigurasi lama</h2>
+<p>Simpan konfigurasi sekarang sebelum menjalankan skrip apa pun, supaya bisa kembali kalau ada yang salah.</p>
+<pre><code>/export file=backup-awal
+/system backup save name=backup-awal</code></pre>
+<p>File <code>backup-awal.rsc</code> dan <code>backup-awal.backup</code> muncul di menu Files. Unduh keduanya ke komputer.</p>
+
+<h2 id="terminal">2. Jalankan lewat Terminal Winbox</h2>
+<p>Tekan <b>Salin skrip</b> di generator, buka Winbox, klik <b>New Terminal</b>, lalu klik kanan dan pilih Paste. Baris diawali <code>#</code> hanya komentar dan diabaikan router.</p>
+<div class="box">Untuk skrip panjang (ratusan akun atau voucher), cara import di bawah lebih aman karena paste besar kadang terpotong.</div>
+
+<h2 id="import">3. Import file .rsc</h2>
+<p>Tekan <b>Unduh .rsc</b>, lalu seret file ke jendela Files di Winbox. Setelah itu jalankan:</p>
+<pre><code>/import file-name=Router-RTRW-v7.rsc verbose=yes</code></pre>
+<p>Dengan <code>verbose=yes</code>, router menampilkan baris yang gagal sehingga mudah dicek.</p>
+
+<h2 id="modul">4. Catatan per modul</h2>
+<ul>
+<li><b>Dasar:</b> kalau port LAN sudah masuk bridge bawaan, hapus dulu dari bridge lama di Bridge → Ports, atau perintah <code>/interface bridge port add</code> akan gagal.</li>
+<li><b>PPPoE Server:</b> rule filter ISOLIR ditambahkan di urutan bawah. Pindahkan ke atas rule forward lain di IP → Firewall → Filter agar efektif. Untuk mengisolir pelanggan, ganti profil secret-nya ke <code>ISOLIR</code> lalu putus sesinya di PPP → Active.</li>
+<li><b>Hotspot:</b> interface hotspot sebaiknya tidak menjadi anggota bridge LAN.</li>
+<li><b>Load Balance PCC:</b> gateway tiap WAN harus berupa IP. Jika memakai NAT di modul Dasar juga, matikan salah satu agar tidak dobel.</li>
+<li><b>Firewall:</b> opsi drop input dari WAN menutup Winbox dari internet. Pastikan Anda masuk lewat LAN, VPN atau tunnel sebelum menjalankan. FastTrack membuat rate-limit PPPoE dan queue tidak jalan.</li>
+</ul>
+
+<h2 id="versi">5. Bedanya v6 dan v7</h2>
+<p>Pilih versi sesuai router. Cek dengan <code>/system resource print</code>. Perbedaan yang ditangani generator:</p>
+<ul>
+<li>Load balance: v7 membuat <code>/routing table</code> dan memakai <code>routing-table=</code>; v6 memakai <code>routing-mark=</code>.</li>
+<li>NTP client: v7 memakai <code>servers=</code>; v6 memakai <code>primary-ntp=</code>.</li>
+<li>FastTrack: v7 menambahkan <code>hw-offload=yes</code>.</li>
+</ul>
+</main>
+<footer class="foot"><div class="in"><span>Skrip Generat · generator skrip MikroTik RouterOS v6 dan v7</span><span>Semua skrip dibuat di browser Anda, tidak ada data yang dikirim ke server.</span></div></footer>
+</body>
+</html>
