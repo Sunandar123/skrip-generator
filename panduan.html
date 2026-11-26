@@ -32,13 +32,14 @@
 <p>Tekan <b>Unduh .rsc</b>, lalu seret file ke jendela Files di Winbox. Setelah itu jalankan:</p>
 <pre><code>/import file-name=Router-RTRW-v7.rsc verbose=yes</code></pre>
 <p>Dengan <code>verbose=yes</code>, router menampilkan baris yang gagal sehingga mudah dicek.</p>
+<div class="box"><b>Mode aman</b> (aktif bawaan) membungkus perintah <code>add</code> dengan <code>:do { ... } on-error={ ... }</code>. Jika pool, profil, bridge atau akun dengan nama sama sudah ada di router, baris itu dilewati dan muncul pesan <code>dilewati (sudah ada)</code>, sehingga import tidak berhenti di tengah. Rule firewall tidak dibungkus, jadi jangan jalankan modul Firewall dua kali.</div>
 
 <h2 id="modul">4. Catatan per modul</h2>
 <ul>
 <li><b>Dasar:</b> kalau port LAN sudah masuk bridge bawaan, hapus dulu dari bridge lama di Bridge → Ports, atau perintah <code>/interface bridge port add</code> akan gagal.</li>
-<li><b>PPPoE Server:</b> rule filter ISOLIR ditambahkan di urutan bawah. Pindahkan ke atas rule forward lain di IP → Firewall → Filter agar efektif. Untuk mengisolir pelanggan, ganti profil secret-nya ke <code>ISOLIR</code> lalu putus sesinya di PPP → Active.</li>
-<li><b>Hotspot:</b> interface hotspot sebaiknya tidak menjadi anggota bridge LAN.</li>
-<li><b>Load Balance PCC:</b> gateway tiap WAN harus berupa IP. Jika memakai NAT di modul Dasar juga, matikan salah satu agar tidak dobel.</li>
+<li><b>PPPoE Server:</b> tombol <b>Unduh daftar akun (.csv)</b> menyimpan username dan password pelanggan, bisa dibuka di Excel atau diimpor ke billing. rule filter ISOLIR ditambahkan di urutan bawah. Pindahkan ke atas rule forward lain di IP → Firewall → Filter agar efektif. Untuk mengisolir pelanggan, ganti profil secret-nya ke <code>ISOLIR</code> lalu putus sesinya di PPP → Active.</li>
+<li><b>Hotspot:</b> interface hotspot sebaiknya tidak menjadi anggota bridge LAN. Tombol <b>Cetak kartu voucher</b> membuka halaman siap cetak, 4 kartu per baris. Tombol <b>Unduh voucher (.csv)</b> menyimpan daftar kode untuk arsip.</li>
+<li><b>Load Balance PCC:</b> gateway tiap WAN harus berupa IP. Jika WAN modul Dasar ikut di-balance, default route dan NAT-nya otomatis diserahkan ke modul Load Balance.</li>
 <li><b>Firewall:</b> opsi drop input dari WAN menutup Winbox dari internet. Pastikan Anda masuk lewat LAN, VPN atau tunnel sebelum menjalankan. FastTrack membuat rate-limit PPPoE dan queue tidak jalan.</li>
 </ul>
 

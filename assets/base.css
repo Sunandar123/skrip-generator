@@ -39,9 +39,17 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .obar b{font:600 14px Inter;color:#fff}.obar span{font-size:13px;color:#8d99a3}
 .copy{background:var(--red);color:#fff;border:0;font:600 15px Inter;min-height:44px;padding:0 18px;border-radius:9px;cursor:pointer}
 pre{margin:0;padding:16px;font:13.5px/1.6 "JetBrains Mono",monospace;max-height:calc(100vh - 150px);overflow:auto;white-space:pre}
-pre .c{color:#7f8c96}pre .h{color:#ff6a5f;font-weight:500}
+pre .c{color:#6b7782}pre .h{color:#ff6a5f;font-weight:500}pre .p{color:#7cc4ff}pre .v{color:#ffcf6b}
 .warn{margin:0;padding:10px 16px;background:#3a1512;color:#ffd5d1;font-size:14px;list-style:none}
 .warn:empty{display:none}.warn li::before{content:"! ";font-weight:700}
+.presets{display:flex;gap:6px;align-items:center;overflow-x:auto;padding:0 max(4vw,16px) 10px;max-width:1400px;margin:auto}
+.presets span{flex:none;font-size:14px;color:var(--mut);margin-right:2px}
+.presets button{flex:none;border:1px dashed var(--mut);background:none;color:var(--ink);font:500 14px Inter;min-height:40px;padding:0 12px;border-radius:999px;cursor:pointer}
+.presets button[aria-pressed=true]{border-style:solid;border-color:var(--red);background:var(--panel)}
+.tools{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.fab{display:none}
+@media(max-width:900px){.fab:not([hidden]){display:flex;position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:5;align-items:center;min-height:48px;padding:0 18px;border-radius:999px;background:var(--red);color:#fff;font:600 15px Inter;text-decoration:none;box-shadow:0 10px 24px -8px #000a}.out{scroll-margin-top:8px}}
 .note{font-size:13px;color:var(--mut);padding:0 max(4vw,16px) 30px;max-width:1400px;margin:auto}
 @media(max-width:900px){main{grid-template-columns:minmax(0,1fr)}.out{position:static}pre{max-height:70vh}}
 @media(max-width:600px){.grid{grid-template-columns:minmax(0,1fr)}.card{padding:16px}}
+@media(max-width:600px){.top{padding-top:16px}.top p{display:none}.glob .sw{padding:0 10px;font-size:14px}}

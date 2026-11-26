@@ -19,18 +19,21 @@
   <div class="glob">
     <div class="seg" role="group" aria-label="Versi RouterOS"><button data-ros="6">RouterOS v6</button><button data-ros="7">RouterOS v7</button></div>
     <label class="chk sw"><input type="checkbox" id="cmt"> Komentar</label>
+    <label class="chk sw" title="Perintah add dibungkus :do on-error supaya /import tidak berhenti jika objek sudah ada"><input type="checkbox" id="safe"> Mode aman</label>
   </div>
 </header>
+<div class="presets" id="presets"><span>Mulai cepat:</span><button data-p="pppoe">RT/RW PPPoE</button><button data-p="hotspot">Hotspot voucher</button><button data-p="lb">Load balance</button><button data-p="vlan">PPPoE + VLAN</button></div>
 <nav class="tabs" id="tabs" role="tablist"></nav>
 <main>
   <section class="card" id="form"></section>
-  <section class="out" aria-label="Hasil skrip">
+  <section class="out" id="hasil" aria-label="Hasil skrip">
     <div class="obar"><div><b>Skrip .rsc</b> <span id="meta"></span></div><div class="acts"><button class="btn2" id="dl">Unduh .rsc</button><button class="copy" id="copy">Salin skrip</button></div></div>
     <ul class="warn" id="warn"></ul>
     <pre id="pre"></pre>
   </section>
 </main>
-<p class="note">Cek dulu sebelum dijalankan di router produksi: nama interface, IP, dan pastikan akses remote (Winbox, tunnel, VPN) tidak ikut terblokir firewall. Backup dulu dengan <code>/export file=backup-awal</code>.</p>
+<a class="fab" id="fab" href="#hasil" hidden>Lihat skrip&nbsp;·&nbsp;<span id="fabn"></span></a>
+<p class="note">Cek dulu sebelum dijalankan di router produksi: nama interface, IP, dan pastikan akses remote (Winbox, tunnel, VPN) tidak ikut terblokir firewall. Backup dulu dengan <code>/export file=backup-awal</code>. Mode aman membuat perintah yang objeknya sudah ada dilewati, bukan menghentikan import.</p>
 <footer class="foot"><div class="in"><span>Skrip Generat · generator skrip MikroTik RouterOS v6 dan v7</span><span>Semua skrip dibuat di browser Anda, tidak ada data yang dikirim ke server.</span></div></footer>
 <script src="assets/app.js"></script>
 </body>
