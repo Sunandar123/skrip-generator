@@ -106,3 +106,7 @@ main{grid-template-columns:minmax(0,1fr);gap:12px}
 .del{width:44px;height:44px;border:1px solid var(--line);background:var(--panel);color:var(--mut);font-size:22px;line-height:1;border-radius:9px;cursor:pointer}
 .del:hover{color:var(--red);border-color:var(--red)}
 .rf,.lf{gap:6px}
+.vseg{display:inline-flex;background:#0c0e10;border:1px solid #3a4148;border-radius:10px;padding:3px;order:3;width:100%}
+.vseg button{flex:1;border:0;background:none;color:#aab5be;font:600 14px Inter;min-height:38px;padding:0 12px;border-radius:7px;cursor:pointer}
+.vseg button[aria-pressed=true]{background:#e6edf2;color:#0c0e10}
+.obar{row-gap:10px}

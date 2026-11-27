@@ -83,6 +83,7 @@ try{S=JSON.parse(localStorage.getItem('mtgen1'))}catch(e){}
 if(!S||!S.basic)S=def();
 if(S.safe===undefined)S.safe=true;
 if(S.wrap===undefined)S.wrap=true;
+if(!S.view)S.view='mod';
 for(const m of M){S[m.id]=S[m.id]||{on:m.on};for(const f of m.f)if(S[m.id][f[0]]===undefined)S[m.id][f[0]]=f[3]}
 const save=()=>{try{localStorage.setItem('mtgen1',JSON.stringify(S))}catch(e){}};
 const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -231,20 +232,26 @@ function renderForm(){const m=M.find(x=>x.id==S.tab),s=S[m.id];
  bt.push('<button class="btn" id="reset">Kembalikan default</button>');
  $('#form').innerHTML=`<div class="mhead"><div><h2>${esc(m.name)}</h2><p>${esc(m.desc)}</p></div><label class="chk sw"><input type="checkbox" id="on"${s.on?' checked':''}> Sertakan</label></div><div class="grid">${fl}</div><div class="tools">${bt.join('')}</div>`}
 let SECS=[];
-const fname=()=>(S.basic.identity||'mikrotik').replace(/[^A-Za-z0-9_-]+/g,'-')+'-v'+S.ros+'.rsc';
+const fname=()=>((S.basic.identity||'mikrotik')+(S.view!='all'?'-'+(S.tab=='lb'?S.lb.method:S.tab):'')).replace(/[^A-Za-z0-9_-]+/g,'-')+'-v'+S.ros+'.rsc';
 const CPI='<svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
 const lines=L=>L.map(l=>`<span class="ln">${hl(l)||' '}</span>`).join('');
-function renderOut(){let o=[];const w=[];const on=M.filter(m=>S[m.id].on);X={pppoe:[],hs:[]};
- const head=S.cmt?[`# Skrip MikroTik RouterOS v${S.ros} — dibuat ${new Date().toLocaleString('id-ID')}`,`# Modul: ${on.map(m=>m.name).join(', ')||'-'}`]:[];
- SECS=on.map(m=>{const L=[];if(S.cmt)L.push(`# ===== ${m.name.toUpperCase()} =====`);G[m.id](S[m.id],L,w);return{name:m.name,lines:L.map(safe)}});
- o=[...head];SECS.forEach((s,i)=>{if(o.length&&S.cmt)o.push('');o.push(...s.lines)});
- if(!on.length)o.push('# Belum ada modul yang disertakan');
+function renderOut(){const on=M.filter(m=>S[m.id].on),cm=M.find(m=>m.id==S.tab),one=S.view!='all';
  const cnt=L=>L.filter(l=>l&&!l.startsWith('#')).length;
- $('#pre').innerHTML=(head.length||!on.length?`<pre class="info">${lines(on.length?head:o)}</pre>`:'')+SECS.map((s,i)=>`<section class="blk"><div class="sh"><div><b>${esc(s.name)}</b><span>${cnt(s.lines)} baris</span></div><button class="cp" data-i="${i}" aria-label="Salin bagian ${esc(s.name)}">${CPI}<span>Salin</span></button></div><pre>${lines(s.lines)}</pre></section>`).join('');
+ const gen=m=>{const L=[],w=[];if(S.cmt)L.push(`# ===== ${m.name.toUpperCase()}${m.id=='lb'?' ('+LBM.find(x=>x[0]==S.lb.method)[1]+')':''} =====`);G[m.id](S[m.id],L,w);return{name:m.id=='lb'?LBM.find(x=>x[0]==S.lb.method)[1]:m.name,lines:L.map(safe),w}};
+ X={pppoe:[],hs:[]};const all=on.map(gen);X={pppoe:[],hs:[]};const cur=gen(cm);
+ SECS=one?[cur]:all;
+ const head=S.cmt?[`# Skrip MikroTik RouterOS v${S.ros} — dibuat ${new Date().toLocaleString('id-ID')}`,`# Modul: ${one?SECS[0].name:on.map(m=>m.name).join(', ')||'-'}`]:[];
+ let o=[...head];SECS.forEach(s=>{if(o.length&&S.cmt)o.push('');o.push(...s.lines)});
+ const w=SECS.flatMap(s=>s.w);
+ if(!one&&!on.length)o.push('# Belum ada modul yang disertakan');
+ if(one&&!S[cm.id].on)w.unshift(`Modul ${cm.name} belum dicentang Sertakan, jadi tidak ikut di "Semua aktif". Skrip di bawah tetap bisa disalin.`);
+ $('#pre').innerHTML=(head.length||(!one&&!on.length)?`<pre class="info">${lines(!one&&!on.length?o:head)}</pre>`:'')+SECS.map((s,i)=>`<section class="blk"><div class="sh"><div><b>${esc(s.name)}</b><span>${cnt(s.lines)} baris</span></div><button class="cp" data-i="${i}" aria-label="Salin bagian ${esc(s.name)}">${CPI}<span>Salin</span></button></div><pre>${lines(s.lines)}</pre></section>`).join('');
  const tot=cnt(o);if(tot>200)w.unshift(`Skrip ${tot} baris: terlalu panjang untuk ditempel di terminal. Pakai Unduh .rsc lalu import (lihat perintah di atas).`);
  $('#impcmd').textContent=`/import file-name=${fname()} verbose=yes`;
  $('#pre').dataset.txt=o.join('\n');$('#warn').innerHTML=w.map(x=>`<li>${esc(x)}</li>`).join('');
- const n=o.filter(l=>l&&!l.startsWith('#')).length;$('#meta').textContent=`${n} baris · v${S.ros}`;$('#fabn').textContent=n+' baris';
+ $('#meta').textContent=`${tot} baris · v${S.ros}`;$('#fabn').textContent=tot+' baris';
+ document.querySelectorAll('[data-v]').forEach(b=>b.setAttribute('aria-pressed',(b.dataset.v=='all')==!one));
+ $('#copy').textContent=one?'Salin modul':'Salin semua';$('#otitle').textContent=one?'Skrip '+SECS[0].name:'Skrip semua modul';
  const act=M.filter(m=>S[m.id].on).map(m=>m.id).join();
  document.querySelectorAll('[data-p]').forEach(b=>b.setAttribute('aria-pressed',M.map(m=>m.id).filter(id=>PRESET[b.dataset.p].includes(id)).join()==act));save()}
 
@@ -256,11 +263,12 @@ document.addEventListener('keydown',e=>{if(e.key=='Escape'&&drw.classList.contai
 $('#tabs').addEventListener('click',e=>{const sb=e.target.closest('[data-lbm]');
  if(sb){S.lb.method=sb.dataset.lbm;S.tab='lb';subOpen=true;renderTabs();renderForm();renderOut();if(drw.classList.contains('open')){menu(false);$('#form').scrollIntoView({block:'start'})}return}
  const b=e.target.closest('[data-t]');if(!b)return;
- if(b.dataset.t=='lb'){subOpen=S.tab=='lb'?!subOpen:true;S.tab='lb';renderTabs();renderForm();save();$('#tabs [data-t=lb]').focus();return}
- S.tab=b.dataset.t;renderTabs();renderForm();save();if(drw.classList.contains('open')){menu(false);$('#form').scrollIntoView({block:'start'})}});
+ if(b.dataset.t=='lb'){subOpen=S.tab=='lb'?!subOpen:true;S.tab='lb';renderTabs();renderForm();renderOut();$('#tabs [data-t=lb]').focus();return}
+ S.tab=b.dataset.t;renderTabs();renderForm();renderOut();if(drw.classList.contains('open')){menu(false);$('#form').scrollIntoView({block:'start'})}});
 document.querySelectorAll('[data-ros]').forEach(b=>b.addEventListener('click',()=>{S.ros=b.dataset.ros;renderTabs();renderOut()}));
 $('#cmt').addEventListener('change',e=>{S.cmt=e.target.checked;renderOut()});
 $('#safe').addEventListener('change',e=>{S.safe=e.target.checked;renderOut()});
+$('#vseg').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;S.view=b.dataset.v;renderOut()});
 $('#presets').addEventListener('click',e=>{const b=e.target.closest('[data-p]');if(!b)return;const p=PRESET[b.dataset.p];for(const m of M)S[m.id].on=p.includes(m.id);S.tab=p[1]||p[0];renderTabs();renderForm();renderOut()});
 function dl(name,text,type){const u=URL.createObjectURL(new Blob([text],{type})),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}
 const csv=r=>r.map(x=>x.map(v=>/[",;\n]/.test(v)?'"'+String(v).replace(/"/g,'""')+'"':v).join(',')).join('\r\n');
@@ -283,7 +291,7 @@ fm.addEventListener('click',e=>{const t=e.target;const ab=t.closest('[data-add],
  if(t.id=='reset'){const m=M.find(x=>x.id==S.tab),on=S[m.id].on;S[m.id]={on};for(const f of m.f)S[m.id][f[0]]=f[3];renderForm();renderOut()}});
 async function clip(t){try{await navigator.clipboard.writeText(t);return}catch(e){}
  const ta=document.createElement('textarea');ta.value=t;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy')}catch(x){}ta.remove()}
-$('#copy').addEventListener('click',async()=>{const b=$('#copy');await clip($('#pre').dataset.txt);b.textContent='Tersalin';setTimeout(()=>b.textContent='Salin semua',1500)});
+$('#copy').addEventListener('click',async()=>{const b=$('#copy');await clip($('#pre').dataset.txt);b.textContent='Tersalin';setTimeout(()=>b.textContent=S.view!='all'?'Salin modul':'Salin semua',1500)});
 $('#pre').addEventListener('click',async e=>{const b=e.target.closest('.cp');if(!b)return;const s=SECS[+b.dataset.i];if(!s)return;await clip(s.lines.join('\n'));
  b.classList.add('ok');b.lastChild.textContent='Tersalin';setTimeout(()=>{b.classList.remove('ok');b.lastChild.textContent='Salin'},1500)});
 $('#impcp').addEventListener('click',async e=>{const b=e.currentTarget;await clip($('#impcmd').textContent);b.classList.add('ok');b.lastChild.textContent='Tersalin';setTimeout(()=>{b.classList.remove('ok');b.lastChild.textContent='Salin'},1500)});
