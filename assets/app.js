@@ -76,11 +76,8 @@ const M=[
  ['list','Daftar VLAN','rows','10,vlan10-kantor,192.168.10.1/24\n20,vlan20-pelanggan,192.168.20.1/24',{cols:[['ID','30',1],['Nama','vlan30'],['IP/CIDR','192.168.30.1/24']],add:'Tambah VLAN'}],
  ['dhcp','Buat DHCP server tiap VLAN','chk',true],
  ['lease','Lease time','text','1d','',s=>s.dhcp]]},
-{id:'queue',name:'Simple Queue',desc:'Limit bandwidth per IP, opsional dengan induk total.',on:false,f:[
- ['list','Daftar queue','rows','PC-Kasir,192.168.88.10,5M/10M\nCCTV,192.168.88.20,2M/2M',{cols:[['Nama','Server'],['Target','192.168.88.30'],['Up/Down','10M/10M']],add:'Tambah queue',hint:'Target bisa IP atau subnet'}],
- ['parent','Pakai queue induk TOTAL','chk',false],
- ['ptarget','Target induk','text','192.168.88.0/24','',s=>s.parent],
- ['plimit','Limit induk (upload/download)','text','50M/100M','',s=>s.parent]]}
+{id:'queue',name:'Simple Queue',desc:'Limit bandwidth per IP atau subnet, dengan parent untuk membagi jatah dari queue induk.',on:false,f:[
+ ['items','Daftar queue','cards',[{name:'TOTAL',target:'192.168.88.0/24',max:'50M/100M',parent:''},{name:'PC-Kasir',target:'192.168.88.10',max:'5M/10M',parent:'TOTAL'},{name:'CCTV',target:'192.168.88.20',max:'2M/2M',parent:'TOTAL'}],{add:'Tambah queue',title:'Queue',cols:[['name','Nama','Server'],['target','Target','192.168.88.30'],['max','Max limit (up/down)','10M/10M'],['parent','Parent','','parent'],['limit','Limit-at (opsional)','2M/2M'],['prio','Priority','','sel',[['','Bawaan (8)'],['1','1 (tertinggi)'],['2','2'],['3','3'],['4','4'],['5','5'],['6','6'],['7','7'],['8','8 (terendah)']]]],hint:'Parent: queue induk yang jatahnya dibagi ke queue ini. Buat dulu queue induk (misal TOTAL untuk satu subnet), lalu pilih sebagai parent di queue lain.'}]]}
 ];
 let S;
 const def=()=>{const s={ros:'7',cmt:true,safe:true,tab:'basic',seed:Date.now()%1e9};for(const m of M){const o={on:m.on};for(const f of m.f)o[f[0]]=cl(f[3]);s[m.id]=o}return s};
@@ -221,9 +218,13 @@ vlan(s,o,w){for(const x of rows(s.list)){const id=lim(x[0],1,4094),n=nm(x[1]||'v
  if(!c){w.push('VLAN '+id+': IP harus format IP/CIDR');continue}
  o.push(`/ip address add address=${x[2]} interface=${n}`);
  if(s.dhcp)o.push(`/ip pool add name=pool-${n} ranges=${pool(c)}`,`/ip dhcp-server add name=dhcp-${n} interface=${n} address-pool=pool-${n} lease-time=${s.lease} disabled=no`,`/ip dhcp-server network add address=${c.netw} gateway=${c.ip} dns-server=${c.ip}`)}},
-queue(s,o,w){if(s.parent)o.push(`/queue simple add name=TOTAL target=${s.ptarget} max-limit=${s.plimit}`);
- for(const x of rows(s.list)){if(!x[1]){w.push('Queue '+x[0]+': target kosong');continue}
-  o.push(`/queue simple add name=${q(x[0])} target=${x[1].includes('/')?x[1]:x[1]+'/32'} max-limit=${x[2]||'1M/1M'}${s.parent?' parent=TOTAL':''}`)}}
+queue(s,o,w){const it=(s.items||[]).filter(x=>x.name||x.target);if(!it.length){w.push('Queue: belum ada queue');return}
+ const names=new Set(it.map(x=>(x.name||'').trim())),done=new Set(),out=[];
+ it.forEach((x,i)=>{if(!x.name)w.push(`Queue ${i+1}: nama kosong`);if(!x.target)w.push(`Queue ${x.name||i+1}: target kosong`);if(x.parent&&!names.has(x.parent))w.push(`Queue ${x.name}: parent "${x.parent}" tidak ada di daftar, pastikan sudah ada di router`);if(x.parent&&x.parent==x.name)w.push(`Queue ${x.name}: parent tidak boleh dirinya sendiri`)});
+ let left=it.filter(x=>x.name&&x.target&&x.parent!=x.name),guard=0;
+ while(left.length&&guard++<50){const nx=[];for(const x of left){if(!x.parent||!names.has(x.parent)||done.has(x.parent)){out.push(x);done.add(x.name)}else nx.push(x)}if(nx.length==left.length){w.push('Queue: parent saling melingkar: '+nx.map(x=>x.name).join(', '));break}left=nx}
+ for(const x of out){const tg=list(x.target).map(t=>t.includes('/')?t:t+'/32').join(','),pr=+x.prio;
+  o.push(`/queue simple add name=${q(x.name.trim())} target=${tg} max-limit=${(x.max||'1M/1M').trim()}${x.limit?' limit-at='+x.limit.trim():''}${pr?` priority=${pr}/${pr}`:''}${x.parent?' parent='+q(x.parent):''}`)}}
 };
 
 function ifs(){const a=[...Array(12)].map((_,i)=>'ether'+(i+1)).concat(['sfp1','sfp-sfpplus1','wlan1','wlan2']);
@@ -239,9 +240,10 @@ function renderForm(){const m=M.find(x=>x.id==S.tab),s=S[m.id];
   if(t=='chk')return `<div class="f w"><label class="chk"><input type="checkbox" id="${fid}" data-k="${id}"${v?' checked':''}> ${esc(lab)}</label>${hint}</div>`;
   if(t=='sel')return `<div class="f"><label for="${fid}">${esc(lab)}</label><select id="${fid}" data-k="${id}">${o.map(x=>{const[a,b]=Array.isArray(x)?x:[x,x];return `<option value="${esc(a)}"${a==v?' selected':''}>${esc(b)}</option>`}).join('')}</select></div>`;
   if(t=='cards'){const A=Array.isArray(v)&&v.length?v:[{}];
-   return `<div class="f w cf" data-ck="${id}"><div class="lh"><span class="lab">${esc(lab)}</span><button type="button" class="addb" data-cadd="${id}">+ ${esc(o.add)}</button></div>${A.map((it,i)=>`<div class="card2" data-ci="${i}"><div class="ch"><b>${esc(o.title)} ${i+1}</b><button type="button" class="del" data-cdel="${i}" aria-label="Hapus ${esc(o.title)} ${i+1}">&times;</button></div><div class="cg">${o.cols.map(([k,l,ph,kind,opt])=>{const val=it[k]??'',fid=`c-${id}-${i}-${k}`;
-     const inp=kind=='sel'?`<select id="${fid}" data-c="${k}">${opt.map(([a,b])=>`<option value="${esc(a)}"${a==val?' selected':''}>${esc(b)}</option>`).join('')}</select>`:`<input type="text" id="${fid}" data-c="${k}" value="${esc(val)}" placeholder="${esc(ph)}" spellcheck="false" autocapitalize="off"${kind=='ifc'?' list="iflist"':''}${kind=='num'?' inputmode="numeric"':''}>`;
-     const lb2=k=='table'?(S.ros=='6'?'Routing mark':'Routing table'):l;return `<div class="cfld${kind=='w'?' w':''}"><label for="${fid}">${esc(lb2)}</label>${inp}</div>`}).join('')}</div></div>`).join('')}</div>`}
+   return `<div class="f w cf" data-ck="${id}"><div class="lh"><span class="lab">${esc(lab)}</span><button type="button" class="addb" data-cadd="${id}">+ ${esc(o.add)}</button></div>${A.map((it,i)=>`<div class="card2" data-ci="${i}"><div class="ch"><b>${esc(it.name?it.name:o.title+' '+(i+1))}</b><button type="button" class="del" data-cdel="${i}" aria-label="Hapus ${esc(o.title)} ${i+1}">&times;</button></div><div class="cg">${o.cols.map(([k,l,ph,kind,opt])=>{const val=it[k]??'',fid=`c-${id}-${i}-${k}`;
+     const pn=kind=='parent'?[...new Set(A.map(z=>(z.name||'').trim()).filter(n=>n&&n!=(it.name||'').trim()).concat(val?[val]:[]))]:[];
+     const inp=kind=='parent'?`<select id="${fid}" data-c="${k}"><option value="">Tidak ada</option>${pn.map(n=>`<option value="${esc(n)}"${n==val?' selected':''}>${esc(n)}</option>`).join('')}</select>`:kind=='sel'?`<select id="${fid}" data-c="${k}">${opt.map(([a,b])=>`<option value="${esc(a)}"${a==val?' selected':''}>${esc(b)}</option>`).join('')}</select>`:`<input type="text" id="${fid}" data-c="${k}" value="${esc(val)}" placeholder="${esc(ph)}" spellcheck="false" autocapitalize="off"${kind=='ifc'?' list="iflist"':''}${kind=='num'?' inputmode="numeric"':''}>`;
+     const lb2=k=='table'?(S.ros=='6'?'Routing mark':'Routing table'):l;return `<div class="cfld${kind=='w'?' w':''}"><label for="${fid}">${esc(lb2)}</label>${inp}</div>`}).join('')}</div></div>`).join('')}${o.hint?`<span class="hint">${esc(o.hint)}</span>`:''}</div>`}
   if(t=='rows'){const R=String(v||'').split('\n');if(!R.length||R.every(x=>!x))R.splice(0,R.length,'');const tpl=o.cols.map(c=>c[2]?'72px':'minmax(0,1fr)').join(' ')+' 44px';
    return `<div class="f w rf" data-fk="${id}"><div class="lh"><span class="lab">${esc(lab)}</span><button type="button" class="addb" data-add="${id}">+ ${esc(o.add)}</button></div><div class="rhead" style="grid-template-columns:${tpl}">${o.cols.map(c=>`<span>${esc(c[0])}</span>`).join('')}<span></span></div>${R.map((r,ri)=>{const c=r.split(',');return `<div class="rrow" style="grid-template-columns:${tpl}">${o.cols.map((cc,ci)=>`<input type="text"${cc[3]=='ifc'?' list="iflist"':''} value="${esc((c[ci]||'').trim())}" placeholder="${esc(cc[1])}" aria-label="${esc(cc[0])} baris ${ri+1}" spellcheck="false" autocapitalize="off"${cc[2]?' inputmode="numeric"':''}>`).join('')}<button type="button" class="del" data-del="${ri}" aria-label="Hapus baris ${ri+1}">&times;</button></div>`}).join('')}${o.hint?`<span class="hint">${esc(o.hint)}</span>`:''}</div>`}
   if(t=='list'){const L=String(v||'').split(',');
@@ -303,7 +305,7 @@ function collect(w){const clean=i=>i.value.replace(/,/g,'').trim();
  return w.classList.contains('rf')?[...w.querySelectorAll('.rrow')].map(r=>[...r.querySelectorAll('input')].map(clean).join(',')).join('\n'):[...w.querySelectorAll('.lrow input')].map(clean).join(',')}
 fm.addEventListener('input',e=>{const t=e.target,s=S[S.tab];if(t.id=='on')return;const cc=t.closest('.card2');if(cc&&t.dataset.c){const k=cc.closest('[data-ck]').dataset.ck,i=+cc.dataset.ci;if(!Array.isArray(s[k])||!s[k].length)s[k]=[{}];s[k][i]=s[k][i]||{};s[k][i][t.dataset.c]=t.value;renderOut();return}
  const fw=t.closest('[data-fk]');if(fw){s[fw.dataset.fk]=collect(fw);renderOut();return}if(!t.dataset.k)return;s[t.dataset.k]=t.type=='checkbox'?t.checked:t.value;renderOut()});
-fm.addEventListener('change',e=>{const t=e.target;if(t.id=='on'){S[S.tab].on=t.checked;renderTabs();renderOut();return}if(t.closest('.cf'))return;if(t.tagName=='SELECT'||t.type=='checkbox'){const id=t.id;if(t.dataset.k=='method')renderTabs();renderForm();document.getElementById(id)?.focus()}});
+fm.addEventListener('change',e=>{const t=e.target;if(t.id=='on'){S[S.tab].on=t.checked;renderTabs();renderOut();return}if(t.closest('.cf')){if(t.dataset.c=='name'){const id=document.activeElement?.id;renderForm();if(id)document.getElementById(id)?.focus()}return}if(t.tagName=='SELECT'||t.type=='checkbox'){const id=t.id;if(t.dataset.k=='method')renderTabs();renderForm();document.getElementById(id)?.focus()}});
 fm.addEventListener('click',e=>{const t=e.target;const cb=t.closest('[data-cadd],[data-cdel]');
  if(cb){const k=cb.closest('[data-ck]').dataset.ck,s=S[S.tab];let a=Array.isArray(s[k])?s[k]:[];if(!a.length)a=[{}];
   if(cb.dataset.cadd!==undefined){a.push({});s[k]=a;renderForm();renderOut();const cs=document.querySelectorAll(`[data-ck="${k}"] .card2`);cs[cs.length-1].querySelector('input,select').focus()}
@@ -326,6 +328,7 @@ const wb=$('#wrap'),setWrap=()=>{$('#pre').classList.toggle('wrap',S.wrap);wb.se
 wb.addEventListener('click',()=>{S.wrap=!S.wrap;setWrap();save()});
 $('#dl').addEventListener('click',()=>dl(fname(),$('#pre').dataset.txt.replace(/\n/g,'\r\n'),'text/plain'));
 const fab=$('#fab'),fio=new IntersectionObserver(es=>{fab.hidden=es[0].isIntersecting});fio.observe($('#hasil'));
+if(S.queue&&typeof S.queue.list=='string'&&!S.queue._mig){const it=[];if(S.queue.parent)it.push({name:'TOTAL',target:S.queue.ptarget||'',max:S.queue.plimit||'',parent:''});rows(S.queue.list).forEach(x=>it.push({name:x[0],target:x[1]||'',max:x[2]||'',parent:S.queue.parent?'TOTAL':''}));if(it.length)S.queue.items=it;S.queue._mig=1}
 setWrap();renderTabs();renderForm();renderOut();
 function $(s){return document.querySelector(s)}
 }
