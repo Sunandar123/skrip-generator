@@ -12,7 +12,7 @@ const M=[
  ['pp_user','User PPPoE ISP','text','','',s=>s.wan_type=='pppoe'],
  ['pp_pass','Password PPPoE ISP','text','','',s=>s.wan_type=='pppoe'],
  ['lan_br','Nama bridge LAN','text','bridge-lan'],
- ['lan_ports','Port masuk bridge','text','ether2,ether3','Pisahkan dengan koma'],
+ ['lan_ports','Port masuk bridge','list','ether2,ether3',{add:'Tambah port',ph:'ether4'}],
  ['lan_ip','IP LAN / CIDR','text','192.168.88.1/24'],
  ['dns','DNS server','text','8.8.8.8,1.1.1.1'],
  ['dhcp','Buat DHCP server di LAN','chk',true],
@@ -23,7 +23,7 @@ const M=[
  ['ranges','Range pool pelanggan','text','10.10.10.2-10.10.10.254'],
  ['dns','DNS untuk pelanggan','text','8.8.8.8,1.1.1.1'],
  ['mtu','MTU/MRU PPPoE','num',1480,'Umumnya 1480'],
- ['profiles','Profil paket (nama,upload/download)','area','PAKET-10M,10M/10M\nPAKET-20M,20M/20M\nPAKET-30M,30M/30M','Satu per baris'],
+ ['profiles','Profil paket','rows','PAKET-10M,10M/10M\nPAKET-20M,20M/20M\nPAKET-30M,30M/30M',{cols:[['Nama paket','PAKET-50M'],['Upload/Download','50M/50M']],add:'Tambah paket'}],
  ['gen','Buat akun pelanggan massal','chk',true],
  ['prefix','Awalan username','text','plg','',s=>s.gen],
  ['start','Nomor awal','num',1,'',s=>s.gen],
@@ -40,7 +40,7 @@ const M=[
  ['ip','IP hotspot / CIDR','text','172.16.0.1/22'],
  ['dns_name','DNS name halaman login','text','login.wifi'],
  ['dns','DNS server','text','8.8.8.8,1.1.1.1'],
- ['profiles','Profil user (nama,rate,shared-users)','area','1JAM,2M/2M,1\nHARIAN,3M/3M,1\nMINGGUAN,5M/5M,2','Satu per baris'],
+ ['profiles','Profil user','rows','1JAM,2M/2M,1\nHARIAN,3M/3M,1\nMINGGUAN,5M/5M,2',{cols:[['Nama','BULANAN'],['Rate','10M/10M'],['Shared','1',1]],add:'Tambah profil'}],
  ['vcount','Jumlah voucher','num',20],
  ['vlen','Panjang kode','num',6],
  ['charset','Karakter kode','sel','num',[['num','Angka'],['up','Huruf besar'],['mix','Huruf + angka']]],
@@ -51,13 +51,13 @@ const M=[
  ['price','Harga di kartu voucher','text','Rp3.000','Hanya untuk cetak voucher']]},
 {id:'lb',name:'Load Balance',desc:'Bagi koneksi ke beberapa ISP dengan PCC, NTH atau ECMP, plus failover.',on:false,f:[
  ['method','Metode','sel','pcc',LBM.map(x=>[x[0],x[2]])],
- ['wans','WAN (interface,gateway,bobot)','area','ether1,192.168.1.1,1\nether2,192.168.2.1,1','Bobot 2 = dapat jatah koneksi 2x. Gateway harus IP.'],
- ['local','Subnet lokal (tidak di-balance)','text','10.0.0.0/8,172.16.0.0/12,192.168.0.0/16','IP tujuan jaringan sendiri: LAN, VLAN, pool PPPoE/hotspot. Tambah 100.64.0.0/10 jika lewat Tailscale/CGNAT.',s=>s.method!='ecmp'],
+ ['wans','WAN','rows','ether1,192.168.1.1,1\nether2,192.168.2.1,1',{cols:[['Interface','ether3'],['Gateway','192.168.3.1'],['Bobot','1',1]],add:'Tambah WAN',hint:'Bobot 2 = dapat jatah koneksi 2x. Gateway harus IP.'}],
+ ['local','Subnet lokal (tidak di-balance)','list','10.0.0.0/8,172.16.0.0/12,192.168.0.0/16',{add:'Tambah IP',ph:'100.64.0.0/10',hint:'IP tujuan jaringan sendiri: LAN, VLAN, pool PPPoE/hotspot. Tambah 100.64.0.0/10 jika lewat Tailscale/CGNAT.'},s=>s.method!='ecmp'],
  ['cls','Classifier PCC','sel','both-addresses-and-ports',['both-addresses-and-ports','both-addresses','src-address','src-address-and-port'],s=>s.method=='pcc'],
  ['failover','Route failover di tabel main','chk',true,'',s=>s.method!='ecmp']]},
 {id:'fw',name:'Firewall',desc:'Proteksi router dari WAN, matikan layanan tak terpakai.',on:true,f:[
- ['wan','Interface WAN tambahan','text','','WAN dari modul Dasar dan Load Balance otomatis ikut. Isi jika ada WAN lain.'],
- ['lan','Interface LAN','text','bridge-lan','Untuk neighbor dan MAC-winbox'],
+ ['wan','Interface WAN tambahan','list','',{add:'Tambah WAN',ph:'pppoe-out2',hint:'WAN dari modul Dasar dan Load Balance otomatis ikut. Isi jika ada WAN lain.'}],
+ ['lan','Interface LAN','list','bridge-lan',{add:'Tambah LAN',ph:'vlan10',hint:'Untuk neighbor dan MAC-winbox'}],
  ['mgmt','Port management dibuka dari WAN','text','','Contoh: 8291. Kosongkan = tertutup'],
  ['winbox','Port Winbox','num',8291],
  ['dropdns','Blok DNS dari WAN (anti open resolver)','chk',true],
@@ -68,11 +68,11 @@ const M=[
  ['fast','FastTrack','chk',false,'Mematikan efek queue/rate-limit PPPoE. Biarkan mati jika pakai limit.']]},
 {id:'vlan',name:'VLAN',desc:'Banyak VLAN sekaligus, lengkap dengan IP dan DHCP.',on:false,f:[
  ['parent','Interface induk','text','bridge-lan'],
- ['list','VLAN (id,nama,IP/CIDR)','area','10,vlan10-kantor,192.168.10.1/24\n20,vlan20-pelanggan,192.168.20.1/24','Satu per baris'],
+ ['list','Daftar VLAN','rows','10,vlan10-kantor,192.168.10.1/24\n20,vlan20-pelanggan,192.168.20.1/24',{cols:[['ID','30',1],['Nama','vlan30'],['IP/CIDR','192.168.30.1/24']],add:'Tambah VLAN'}],
  ['dhcp','Buat DHCP server tiap VLAN','chk',true],
  ['lease','Lease time','text','1d','',s=>s.dhcp]]},
 {id:'queue',name:'Simple Queue',desc:'Limit bandwidth per IP, opsional dengan induk total.',on:false,f:[
- ['list','Queue (nama,target,upload/download)','area','PC-Kasir,192.168.88.10,5M/10M\nCCTV,192.168.88.20,2M/2M','Target IP atau subnet'],
+ ['list','Daftar queue','rows','PC-Kasir,192.168.88.10,5M/10M\nCCTV,192.168.88.20,2M/2M',{cols:[['Nama','Server'],['Target','192.168.88.30'],['Up/Down','10M/10M']],add:'Tambah queue',hint:'Target bisa IP atau subnet'}],
  ['parent','Pakai queue induk TOTAL','chk',false],
  ['ptarget','Target induk','text','192.168.88.0/24','',s=>s.parent],
  ['plimit','Limit induk (upload/download)','text','50M/100M','',s=>s.parent]]}
@@ -219,6 +219,10 @@ function renderForm(){const m=M.find(x=>x.id==S.tab),s=S[m.id];
  const fl=m.f.filter(f=>!f[5]||f[5](s)).map(([id,lab,t,d,o,h])=>{const fid=`f-${m.id}-${id}`,hint=typeof o=='string'&&o?`<span class="hint">${esc(o)}</span>`:'',v=s[id];
   if(t=='chk')return `<div class="f w"><label class="chk"><input type="checkbox" id="${fid}" data-k="${id}"${v?' checked':''}> ${esc(lab)}</label>${hint}</div>`;
   if(t=='sel')return `<div class="f"><label for="${fid}">${esc(lab)}</label><select id="${fid}" data-k="${id}">${o.map(x=>{const[a,b]=Array.isArray(x)?x:[x,x];return `<option value="${esc(a)}"${a==v?' selected':''}>${esc(b)}</option>`}).join('')}</select></div>`;
+  if(t=='rows'){const R=String(v||'').split('\n');if(!R.length||R.every(x=>!x))R.splice(0,R.length,'');const tpl=o.cols.map(c=>c[2]?'72px':'minmax(0,1fr)').join(' ')+' 44px';
+   return `<div class="f w rf" data-fk="${id}"><div class="lh"><span class="lab">${esc(lab)}</span><button type="button" class="addb" data-add="${id}">+ ${esc(o.add)}</button></div><div class="rhead" style="grid-template-columns:${tpl}">${o.cols.map(c=>`<span>${esc(c[0])}</span>`).join('')}<span></span></div>${R.map((r,ri)=>{const c=r.split(',');return `<div class="rrow" style="grid-template-columns:${tpl}">${o.cols.map((cc,ci)=>`<input type="text" value="${esc((c[ci]||'').trim())}" placeholder="${esc(cc[1])}" aria-label="${esc(cc[0])} baris ${ri+1}" spellcheck="false" autocapitalize="off"${cc[2]?' inputmode="numeric"':''}>`).join('')}<button type="button" class="del" data-del="${ri}" aria-label="Hapus baris ${ri+1}">&times;</button></div>`}).join('')}${o.hint?`<span class="hint">${esc(o.hint)}</span>`:''}</div>`}
+  if(t=='list'){const L=String(v||'').split(',');
+   return `<div class="f w lf" data-fk="${id}"><div class="lh"><span class="lab">${esc(lab)}</span><button type="button" class="addb" data-add="${id}">+ ${esc(o.add)}</button></div>${L.map((x,li)=>`<div class="lrow"><input type="text" value="${esc(x.trim())}" placeholder="${esc(o.ph||'')}" aria-label="${esc(lab)} ${li+1}" spellcheck="false" autocapitalize="off"><button type="button" class="del" data-del="${li}" aria-label="Hapus ${li+1}">&times;</button></div>`).join('')}${o.hint?`<span class="hint">${esc(o.hint)}</span>`:''}</div>`}
   if(t=='area')return `<div class="f w"><label for="${fid}">${esc(lab)}</label><textarea id="${fid}" data-k="${id}" spellcheck="false">${esc(v)}</textarea>${hint}</div>`;
   return `<div class="f"><label for="${fid}">${esc(lab)}</label><input type="${t=='num'?'number':'text'}" id="${fid}" data-k="${id}" value="${esc(v)}" spellcheck="false" autocapitalize="off">${hint}</div>`}).join('');
  const bt=[];if((m.id=='pppoe'&&s.gen&&s.pwmode=='random')||m.id=='hotspot')bt.push('<button class="btn" id="reseed">Acak ulang kode</button>');
@@ -265,9 +269,14 @@ function printVc(){const s=S.hotspot,d=esc(s.dns_name),same=s.vmode=='same';
  const html=`<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><title>Voucher ${d}</title><style>body{margin:12px;font:13px Arial,sans-serif;color:#111}.g{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.v{border:1px dashed #555;padding:8px;break-inside:avoid}.t{display:flex;justify-content:space-between;border-bottom:2px solid #e8251a;padding-bottom:4px;margin-bottom:6px}.k{font-size:10px;color:#555}.c{font:bold 20px 'Courier New',monospace;letter-spacing:2px}.c.s{font-size:15px}.f{margin-top:4px;font-size:11px;color:#333}@media print{body{margin:0}}</style></head><body><div class="g">${cards}</div><script>onload=()=>print()<\/script></body></html>`;
  const u=URL.createObjectURL(new Blob([html],{type:'text/html'})),a=document.createElement('a');a.href=u;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000)}
 const fm=$('#form');
-fm.addEventListener('input',e=>{const t=e.target,s=S[S.tab];if(t.id=='on')return;if(!t.dataset.k)return;s[t.dataset.k]=t.type=='checkbox'?t.checked:t.value;renderOut()});
+function collect(w){const clean=i=>i.value.replace(/,/g,'').trim();
+ return w.classList.contains('rf')?[...w.querySelectorAll('.rrow')].map(r=>[...r.querySelectorAll('input')].map(clean).join(',')).join('\n'):[...w.querySelectorAll('.lrow input')].map(clean).join(',')}
+fm.addEventListener('input',e=>{const t=e.target,s=S[S.tab];if(t.id=='on')return;const fw=t.closest('[data-fk]');if(fw){s[fw.dataset.fk]=collect(fw);renderOut();return}if(!t.dataset.k)return;s[t.dataset.k]=t.type=='checkbox'?t.checked:t.value;renderOut()});
 fm.addEventListener('change',e=>{const t=e.target;if(t.id=='on'){S[S.tab].on=t.checked;renderTabs();renderOut();return}if(t.tagName=='SELECT'||t.type=='checkbox'){const id=t.id;if(t.dataset.k=='method')renderTabs();renderForm();document.getElementById(id)?.focus()}});
-fm.addEventListener('click',e=>{const t=e.target;if(t.id=='reseed'){S.seed=(S.seed*7919+13)%1e9;renderOut()}
+fm.addEventListener('click',e=>{const t=e.target;const ab=t.closest('[data-add],[data-del]');
+ if(ab){const w=ab.closest('[data-fk]'),k=w.dataset.fk,s=S[S.tab],isR=w.classList.contains('rf'),sep=isR?'\n':',';let a=collect(w).split(sep);
+  if(ab.dataset.add){a.push(isR?'':'');s[k]=a.join(sep);renderForm();const ws=$(`[data-fk="${k}"]`),ins=ws.querySelectorAll(isR?'.rrow':'.lrow');ins[ins.length-1].querySelector('input').focus()}
+  else{a.splice(+ab.dataset.del,1);if(!a.length)a=[''];s[k]=a.join(sep);renderForm();renderOut()}return}if(t.id=='reseed'){S.seed=(S.seed*7919+13)%1e9;renderOut()}
  if(t.dataset.csv=='pppoe')dl('akun-pppoe.csv',csv([['username','password','profil'],...X.pppoe]),'text/csv');
  if(t.dataset.csv=='hs')dl('voucher-hotspot.csv',csv([['username','password','profil','limit-uptime'],...X.hs]),'text/csv');
  if(t.id=='print')printVc();

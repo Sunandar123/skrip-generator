@@ -95,3 +95,14 @@ main{grid-template-columns:minmax(0,1fr);gap:12px}
 .sub[hidden]{display:none}
 .sub button{text-align:left;border:1px solid var(--line);background:var(--field);color:var(--ink);font:500 15px Inter;min-height:44px;padding:0 12px;border-radius:9px;cursor:pointer}
 .sub button[aria-pressed=true]{border-color:var(--red);background:var(--panel);font-weight:600;box-shadow:inset 3px 0 0 var(--red)}
+.lh{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.lab{font-size:14px;font-weight:600}
+.addb{border:1px dashed var(--ink);background:none;color:var(--ink);font:600 14px Inter;min-height:40px;padding:0 12px;border-radius:9px;cursor:pointer}
+.addb:hover{background:var(--field);border-style:solid}
+.rhead,.rrow{display:grid;gap:6px;align-items:center}
+.rhead span{font-size:12.5px;color:var(--mut);font-weight:500}
+.rrow input,.lrow input{padding:9px 9px}
+.lrow{display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:6px}
+.del{width:44px;height:44px;border:1px solid var(--line);background:var(--panel);color:var(--mut);font-size:22px;line-height:1;border-radius:9px;cursor:pointer}
+.del:hover{color:var(--red);border-color:var(--red)}
+.rf,.lf{gap:6px}
