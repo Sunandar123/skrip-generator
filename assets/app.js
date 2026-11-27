@@ -1,5 +1,6 @@
 {
 const LBM=[['pcc','LB PCC','PCC (per-connection-classifier)'],['nth','LB NTH','NTH (koneksi bergiliran)'],['ecmp','ECMP','ECMP (route multi-gateway)']];
+const cl=v=>v&&typeof v=='object'?JSON.parse(JSON.stringify(v)):v;
 const TZ=['Asia/Jakarta','Asia/Makassar','Asia/Jayapura','Asia/Seoul'];
 const M=[
 {id:'basic',name:'Dasar',desc:'Identity, jam, WAN, bridge LAN, DHCP server, DNS dan NAT.',on:true,f:[
@@ -17,6 +18,10 @@ const M=[
  ['dns','DNS server','text','8.8.8.8,1.1.1.1'],
  ['dhcp','Buat DHCP server di LAN','chk',true],
  ['nat','NAT masquerade ke WAN','chk',true]]},
+{id:'ipaddr',name:'IP Address',desc:'Tambah IP ke interface: ether, bridge, VLAN, atau lainnya.',on:false,f:[
+ ['items','Daftar IP address','cards',[{address:'192.168.10.1/24',interface:'ether3',comment:'LAN-2'}],{add:'Tambah IP',title:'IP',cols:[['address','Address/CIDR','192.168.20.1/24'],['interface','Interface','ether4','ifc'],['comment','Komentar','opsional','w']]}]]},
+{id:'route',name:'IP Route',desc:'Route statis: tujuan, gateway, distance, check-gateway dan routing table.',on:false,f:[
+ ['items','Daftar route','cards',[{dst:'0.0.0.0/0',gw:'192.168.1.1',dist:'1',check:'ping',table:'',src:'',comment:'default ISP'}],{add:'Tambah route',title:'Route',cols:[['dst','Dst. address','10.20.0.0/24'],['gw','Gateway','IP atau ether1','ifc'],['dist','Distance','1','num'],['check','Check gateway','','sel',[['','Tidak'],['ping','ping'],['arp','arp'],['bfd','bfd']]],['table','Routing table','main'],['src','Pref. source','opsional'],['comment','Komentar','opsional','w']]}]]},
 {id:'pppoe',name:'PPPoE Server',desc:'Pool, profil paket, server PPPoE, akun pelanggan massal, dan profil isolir.',on:true,f:[
  ['srv_if','Interface PPPoE server','text','ether4','Bisa juga bridge atau VLAN'],
  ['local','Local address (gateway)','text','10.10.10.1'],
@@ -51,7 +56,7 @@ const M=[
  ['price','Harga di kartu voucher','text','Rp3.000','Hanya untuk cetak voucher']]},
 {id:'lb',name:'Load Balance',desc:'Bagi koneksi ke beberapa ISP dengan PCC, NTH atau ECMP, plus failover.',on:false,f:[
  ['method','Metode','sel','pcc',LBM.map(x=>[x[0],x[2]])],
- ['wans','WAN','rows','ether1,192.168.1.1,1\nether2,192.168.2.1,1',{cols:[['Interface','ether3'],['Gateway','192.168.3.1'],['Bobot','1',1]],add:'Tambah WAN',hint:'Bobot 2 = dapat jatah koneksi 2x. Gateway harus IP.'}],
+ ['wans','WAN','rows','ether1,192.168.1.1,1\nether2,192.168.2.1,1',{cols:[['Interface','ether3',0,'ifc'],['Gateway','192.168.3.1'],['Bobot','1',1]],add:'Tambah WAN',hint:'Bobot 2 = dapat jatah koneksi 2x. Gateway harus IP.'}],
  ['local','Subnet lokal (tidak di-balance)','list','10.0.0.0/8,172.16.0.0/12,192.168.0.0/16',{add:'Tambah IP',ph:'100.64.0.0/10',hint:'IP tujuan jaringan sendiri: LAN, VLAN, pool PPPoE/hotspot. Tambah 100.64.0.0/10 jika lewat Tailscale/CGNAT.'},s=>s.method!='ecmp'],
  ['cls','Classifier PCC','sel','both-addresses-and-ports',['both-addresses-and-ports','both-addresses','src-address','src-address-and-port'],s=>s.method=='pcc'],
  ['failover','Route failover di tabel main','chk',true,'',s=>s.method!='ecmp']]},
@@ -78,13 +83,13 @@ const M=[
  ['plimit','Limit induk (upload/download)','text','50M/100M','',s=>s.parent]]}
 ];
 let S;
-const def=()=>{const s={ros:'7',cmt:true,safe:true,tab:'basic',seed:Date.now()%1e9};for(const m of M){const o={on:m.on};for(const f of m.f)o[f[0]]=f[3];s[m.id]=o}return s};
+const def=()=>{const s={ros:'7',cmt:true,safe:true,tab:'basic',seed:Date.now()%1e9};for(const m of M){const o={on:m.on};for(const f of m.f)o[f[0]]=cl(f[3]);s[m.id]=o}return s};
 try{S=JSON.parse(localStorage.getItem('mtgen1'))}catch(e){}
 if(!S||!S.basic)S=def();
 if(S.safe===undefined)S.safe=true;
 if(S.wrap===undefined)S.wrap=true;
 if(!S.view)S.view='mod';
-for(const m of M){S[m.id]=S[m.id]||{on:m.on};for(const f of m.f)if(S[m.id][f[0]]===undefined)S[m.id][f[0]]=f[3]}
+for(const m of M){S[m.id]=S[m.id]||{on:m.on};for(const f of m.f)if(S[m.id][f[0]]===undefined)S[m.id][f[0]]=cl(f[3])}
 const save=()=>{try{localStorage.setItem('mtgen1',JSON.stringify(S))}catch(e){}};
 const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const q=t=>'"'+String(t).replace(/["\\$?]/g,'\\$&')+'"';
@@ -92,6 +97,7 @@ const nm=t=>/^[A-Za-z0-9._\-]+$/.test(t)?t:q(t);
 const ip2n=s=>s.split('.').reduce((a,b)=>a*256+(+b),0);
 const n2ip=n=>[24,16,8,0].map(k=>Math.floor(n/2**k)%256).join('.');
 const isIP=s=>/^\d{1,3}(\.\d{1,3}){3}$/.test(s)&&s.split('.').every(x=>+x<256);
+function cidrAny(s){const m=/^(\S+)\/(\d{1,2})$/.exec((s||'').trim());return !!m&&isIP(m[1])&&+m[2]<=32}
 function cidr(s){const m=/^(\S+)\/(\d{1,2})$/.exec((s||'').trim());if(!m||!isIP(m[1])||+m[2]>30||+m[2]<8)return null;const p=+m[2],ipn=ip2n(m[1]),size=2**(32-p),net=Math.floor(ipn/size)*size;return{ip:m[1],p,ipn,net,size,netw:n2ip(net)+'/'+p}}
 function pool(c){const a=c.net+1,b=c.net+c.size-2,g=c.ipn;if(g==a)return n2ip(a+1)+'-'+n2ip(b);if(g==b)return n2ip(a)+'-'+n2ip(b-1);return n2ip(a)+'-'+n2ip(g-1)+','+n2ip(g+1)+'-'+n2ip(b)}
 const rows=t=>String(t||'').split('\n').map(l=>l.split(',').map(x=>x.trim())).filter(a=>a[0]);
@@ -131,6 +137,15 @@ basic(s,o,w){const v7=S.ros=='7',W=s.wan_type=='pppoe'?'pppoe-out1':s.wan_if;
  o.push(`/ip dns set servers=${list(s.dns).join(',')} allow-remote-requests=yes`);
  if(s.nat&&!lbo)o.push(`/ip firewall nat add chain=srcnat out-interface=${nm(W)} action=masquerade comment="NAT WAN"`);
  if(list(s.lan_ports).length)w.push('Dasar: jika port LAN sudah ada di bridge default, hapus dulu dari bridge lama')},
+ipaddr(s,o,w){const it=(s.items||[]).filter(x=>x.address||x.interface);if(!it.length){w.push('IP Address: belum ada IP');return}
+ it.forEach((x,i)=>{const a=(x.address||'').trim(),f=(x.interface||'').trim();if(!cidrAny(a)){w.push(`IP Address ${i+1}: address harus IP/CIDR, misal 192.168.20.1/24`);return}if(!f){w.push(`IP Address ${i+1}: interface kosong`);return}
+  o.push(`/ip address add address=${a} interface=${nm(f)}${x.comment?' comment='+q(x.comment):''}`)})},
+route(s,o,w){const v7=S.ros=='7',it=(s.items||[]).filter(x=>x.dst||x.gw);if(!it.length){w.push('IP Route: belum ada route');return}const tb=new Set();
+ it.forEach((x,i)=>{const d=(x.dst||'0.0.0.0/0').trim(),g=(x.gw||'').trim(),t=(x.table||'').trim();
+  if(!cidrAny(d)){w.push(`Route ${i+1}: dst-address harus IP/CIDR, misal 0.0.0.0/0`);return}if(!g){w.push(`Route ${i+1}: gateway kosong`);return}
+  if(t&&t!='main'&&v7&&!tb.has(t)){tb.add(t);o.push(`/routing table add name=${nm(t)} fib`)}
+  if(x.src&&!isIP(x.src.trim()))w.push(`Route ${i+1}: pref. source harus IP`);
+  o.push(`/ip route add dst-address=${d} gateway=${g.replace(/\s+/g,'')}${x.dist&&+x.dist!=1?' distance='+lim(x.dist,1,255):''}${x.check?' check-gateway='+x.check:''}${t&&t!='main'?(v7?' routing-table=':' routing-mark=')+nm(t):''}${x.src&&isIP(x.src.trim())?' pref-src='+x.src.trim():''}${x.comment?' comment='+q(x.comment):''}`)})},
 pppoe(s,o,w){const v7=S.ros=='7',pr=rows(s.profiles);
  if(!isIP(s.local))w.push('PPPoE: local address bukan IP valid');
  o.push(`/ip pool add name=pool-pppoe ranges=${s.ranges}`);
@@ -211,6 +226,9 @@ queue(s,o,w){if(s.parent)o.push(`/queue simple add name=TOTAL target=${s.ptarget
   o.push(`/queue simple add name=${q(x[0])} target=${x[1].includes('/')?x[1]:x[1]+'/32'} max-limit=${x[2]||'1M/1M'}${s.parent?' parent=TOTAL':''}`)}}
 };
 
+function ifs(){const a=[...Array(12)].map((_,i)=>'ether'+(i+1)).concat(['sfp1','sfp-sfpplus1','wlan1','wlan2']);
+ if(S.basic.lan_br)a.push(S.basic.lan_br);if(S.basic.wan_type=='pppoe')a.push('pppoe-out1');rows(S.vlan.list).forEach(x=>x[1]&&a.push(x[1]));a.push(S.pppoe.srv_if,S.hotspot.ifc);
+ return [...new Set(a.filter(Boolean))]}
 let subOpen=S.tab=='lb';
 function renderTabs(){const cm=M.find(m=>m.id==S.tab),lm=LBM.find(x=>x[0]==S.lb.method)||LBM[0];$('#curMod').textContent=cm.id=='lb'?lm[1]:cm.name;$('#onCount').textContent=M.filter(m=>S[m.id].on).length+' aktif';
  $('#tabs').innerHTML=M.map(m=>{const b=`<button role="tab" data-t="${m.id}" aria-selected="${S.tab==m.id}"${m.id=='lb'?` aria-expanded="${subOpen}" aria-controls="lbsub"`:''}><span class="dot${S[m.id].on?' on':''}"></span><span class="tn">${esc(m.name)}${m.id=='lb'?`<small>${esc(lm[1])}</small>`:''}</span>${m.id=='lb'?'<svg class="chev" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}</button>`;
@@ -220,8 +238,12 @@ function renderForm(){const m=M.find(x=>x.id==S.tab),s=S[m.id];
  const fl=m.f.filter(f=>!f[5]||f[5](s)).map(([id,lab,t,d,o,h])=>{const fid=`f-${m.id}-${id}`,hint=typeof o=='string'&&o?`<span class="hint">${esc(o)}</span>`:'',v=s[id];
   if(t=='chk')return `<div class="f w"><label class="chk"><input type="checkbox" id="${fid}" data-k="${id}"${v?' checked':''}> ${esc(lab)}</label>${hint}</div>`;
   if(t=='sel')return `<div class="f"><label for="${fid}">${esc(lab)}</label><select id="${fid}" data-k="${id}">${o.map(x=>{const[a,b]=Array.isArray(x)?x:[x,x];return `<option value="${esc(a)}"${a==v?' selected':''}>${esc(b)}</option>`}).join('')}</select></div>`;
+  if(t=='cards'){const A=Array.isArray(v)&&v.length?v:[{}];
+   return `<div class="f w cf" data-ck="${id}"><div class="lh"><span class="lab">${esc(lab)}</span><button type="button" class="addb" data-cadd="${id}">+ ${esc(o.add)}</button></div>${A.map((it,i)=>`<div class="card2" data-ci="${i}"><div class="ch"><b>${esc(o.title)} ${i+1}</b><button type="button" class="del" data-cdel="${i}" aria-label="Hapus ${esc(o.title)} ${i+1}">&times;</button></div><div class="cg">${o.cols.map(([k,l,ph,kind,opt])=>{const val=it[k]??'',fid=`c-${id}-${i}-${k}`;
+     const inp=kind=='sel'?`<select id="${fid}" data-c="${k}">${opt.map(([a,b])=>`<option value="${esc(a)}"${a==val?' selected':''}>${esc(b)}</option>`).join('')}</select>`:`<input type="text" id="${fid}" data-c="${k}" value="${esc(val)}" placeholder="${esc(ph)}" spellcheck="false" autocapitalize="off"${kind=='ifc'?' list="iflist"':''}${kind=='num'?' inputmode="numeric"':''}>`;
+     return `<div class="cfld${kind=='w'?' w':''}"><label for="${fid}">${esc(l)}</label>${inp}</div>`}).join('')}</div></div>`).join('')}</div>`}
   if(t=='rows'){const R=String(v||'').split('\n');if(!R.length||R.every(x=>!x))R.splice(0,R.length,'');const tpl=o.cols.map(c=>c[2]?'72px':'minmax(0,1fr)').join(' ')+' 44px';
-   return `<div class="f w rf" data-fk="${id}"><div class="lh"><span class="lab">${esc(lab)}</span><button type="button" class="addb" data-add="${id}">+ ${esc(o.add)}</button></div><div class="rhead" style="grid-template-columns:${tpl}">${o.cols.map(c=>`<span>${esc(c[0])}</span>`).join('')}<span></span></div>${R.map((r,ri)=>{const c=r.split(',');return `<div class="rrow" style="grid-template-columns:${tpl}">${o.cols.map((cc,ci)=>`<input type="text" value="${esc((c[ci]||'').trim())}" placeholder="${esc(cc[1])}" aria-label="${esc(cc[0])} baris ${ri+1}" spellcheck="false" autocapitalize="off"${cc[2]?' inputmode="numeric"':''}>`).join('')}<button type="button" class="del" data-del="${ri}" aria-label="Hapus baris ${ri+1}">&times;</button></div>`}).join('')}${o.hint?`<span class="hint">${esc(o.hint)}</span>`:''}</div>`}
+   return `<div class="f w rf" data-fk="${id}"><div class="lh"><span class="lab">${esc(lab)}</span><button type="button" class="addb" data-add="${id}">+ ${esc(o.add)}</button></div><div class="rhead" style="grid-template-columns:${tpl}">${o.cols.map(c=>`<span>${esc(c[0])}</span>`).join('')}<span></span></div>${R.map((r,ri)=>{const c=r.split(',');return `<div class="rrow" style="grid-template-columns:${tpl}">${o.cols.map((cc,ci)=>`<input type="text"${cc[3]=='ifc'?' list="iflist"':''} value="${esc((c[ci]||'').trim())}" placeholder="${esc(cc[1])}" aria-label="${esc(cc[0])} baris ${ri+1}" spellcheck="false" autocapitalize="off"${cc[2]?' inputmode="numeric"':''}>`).join('')}<button type="button" class="del" data-del="${ri}" aria-label="Hapus baris ${ri+1}">&times;</button></div>`}).join('')}${o.hint?`<span class="hint">${esc(o.hint)}</span>`:''}</div>`}
   if(t=='list'){const L=String(v||'').split(',');
    return `<div class="f w lf" data-fk="${id}"><div class="lh"><span class="lab">${esc(lab)}</span><button type="button" class="addb" data-add="${id}">+ ${esc(o.add)}</button></div>${L.map((x,li)=>`<div class="lrow"><input type="text" value="${esc(x.trim())}" placeholder="${esc(o.ph||'')}" aria-label="${esc(lab)} ${li+1}" spellcheck="false" autocapitalize="off"><button type="button" class="del" data-del="${li}" aria-label="Hapus ${li+1}">&times;</button></div>`).join('')}${o.hint?`<span class="hint">${esc(o.hint)}</span>`:''}</div>`}
   if(t=='area')return `<div class="f w"><label for="${fid}">${esc(lab)}</label><textarea id="${fid}" data-k="${id}" spellcheck="false">${esc(v)}</textarea>${hint}</div>`;
@@ -230,7 +252,7 @@ function renderForm(){const m=M.find(x=>x.id==S.tab),s=S[m.id];
  if(m.id=='pppoe'&&s.gen)bt.push('<button class="btn" data-csv="pppoe">Unduh daftar akun (.csv)</button>');
  if(m.id=='hotspot'&&+s.vcount>0)bt.push('<button class="btn" data-csv="hs">Unduh voucher (.csv)</button>','<button class="btn" id="print">Cetak kartu voucher</button>');
  bt.push('<button class="btn" id="reset">Kembalikan default</button>');
- $('#form').innerHTML=`<div class="mhead"><div><h2>${esc(m.name)}</h2><p>${esc(m.desc)}</p></div><label class="chk sw"><input type="checkbox" id="on"${s.on?' checked':''}> Sertakan</label></div><div class="grid">${fl}</div><div class="tools">${bt.join('')}</div>`}
+ $('#form').innerHTML=`<div class="mhead"><div><h2>${esc(m.name)}</h2><p>${esc(m.desc)}</p></div><label class="chk sw"><input type="checkbox" id="on"${s.on?' checked':''}> Sertakan</label></div><div class="grid">${fl}</div><div class="tools">${bt.join('')}</div><datalist id="iflist">${ifs().map(x=>`<option value="${esc(x)}"></option>`).join('')}</datalist>`}
 let SECS=[];
 const fname=()=>((S.basic.identity||'mikrotik')+(S.view!='all'?'-'+(S.tab=='lb'?S.lb.method:S.tab):'')).replace(/[^A-Za-z0-9_-]+/g,'-')+'-v'+S.ros+'.rsc';
 const CPI='<svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
@@ -279,16 +301,21 @@ function printVc(){const s=S.hotspot,d=esc(s.dns_name),same=s.vmode=='same';
 const fm=$('#form');
 function collect(w){const clean=i=>i.value.replace(/,/g,'').trim();
  return w.classList.contains('rf')?[...w.querySelectorAll('.rrow')].map(r=>[...r.querySelectorAll('input')].map(clean).join(',')).join('\n'):[...w.querySelectorAll('.lrow input')].map(clean).join(',')}
-fm.addEventListener('input',e=>{const t=e.target,s=S[S.tab];if(t.id=='on')return;const fw=t.closest('[data-fk]');if(fw){s[fw.dataset.fk]=collect(fw);renderOut();return}if(!t.dataset.k)return;s[t.dataset.k]=t.type=='checkbox'?t.checked:t.value;renderOut()});
-fm.addEventListener('change',e=>{const t=e.target;if(t.id=='on'){S[S.tab].on=t.checked;renderTabs();renderOut();return}if(t.tagName=='SELECT'||t.type=='checkbox'){const id=t.id;if(t.dataset.k=='method')renderTabs();renderForm();document.getElementById(id)?.focus()}});
-fm.addEventListener('click',e=>{const t=e.target;const ab=t.closest('[data-add],[data-del]');
+fm.addEventListener('input',e=>{const t=e.target,s=S[S.tab];if(t.id=='on')return;const cc=t.closest('.card2');if(cc&&t.dataset.c){const k=cc.closest('[data-ck]').dataset.ck,i=+cc.dataset.ci;if(!Array.isArray(s[k])||!s[k].length)s[k]=[{}];s[k][i]=s[k][i]||{};s[k][i][t.dataset.c]=t.value;renderOut();return}
+ const fw=t.closest('[data-fk]');if(fw){s[fw.dataset.fk]=collect(fw);renderOut();return}if(!t.dataset.k)return;s[t.dataset.k]=t.type=='checkbox'?t.checked:t.value;renderOut()});
+fm.addEventListener('change',e=>{const t=e.target;if(t.id=='on'){S[S.tab].on=t.checked;renderTabs();renderOut();return}if(t.closest('.cf'))return;if(t.tagName=='SELECT'||t.type=='checkbox'){const id=t.id;if(t.dataset.k=='method')renderTabs();renderForm();document.getElementById(id)?.focus()}});
+fm.addEventListener('click',e=>{const t=e.target;const cb=t.closest('[data-cadd],[data-cdel]');
+ if(cb){const k=cb.closest('[data-ck]').dataset.ck,s=S[S.tab];let a=Array.isArray(s[k])?s[k]:[];if(!a.length)a=[{}];
+  if(cb.dataset.cadd!==undefined){a.push({});s[k]=a;renderForm();renderOut();const cs=document.querySelectorAll(`[data-ck="${k}"] .card2`);cs[cs.length-1].querySelector('input,select').focus()}
+  else{a.splice(+cb.dataset.cdel,1);s[k]=a.length?a:[{}];renderForm();renderOut()}return}
+ const ab=t.closest('[data-add],[data-del]');
  if(ab){const w=ab.closest('[data-fk]'),k=w.dataset.fk,s=S[S.tab],isR=w.classList.contains('rf'),sep=isR?'\n':',';let a=collect(w).split(sep);
   if(ab.dataset.add){a.push(isR?'':'');s[k]=a.join(sep);renderForm();const ws=$(`[data-fk="${k}"]`),ins=ws.querySelectorAll(isR?'.rrow':'.lrow');ins[ins.length-1].querySelector('input').focus()}
   else{a.splice(+ab.dataset.del,1);if(!a.length)a=[''];s[k]=a.join(sep);renderForm();renderOut()}return}if(t.id=='reseed'){S.seed=(S.seed*7919+13)%1e9;renderOut()}
  if(t.dataset.csv=='pppoe')dl('akun-pppoe.csv',csv([['username','password','profil'],...X.pppoe]),'text/csv');
  if(t.dataset.csv=='hs')dl('voucher-hotspot.csv',csv([['username','password','profil','limit-uptime'],...X.hs]),'text/csv');
  if(t.id=='print')printVc();
- if(t.id=='reset'){const m=M.find(x=>x.id==S.tab),on=S[m.id].on;S[m.id]={on};for(const f of m.f)S[m.id][f[0]]=f[3];renderForm();renderOut()}});
+ if(t.id=='reset'){const m=M.find(x=>x.id==S.tab),on=S[m.id].on;S[m.id]={on};for(const f of m.f)S[m.id][f[0]]=cl(f[3]);renderForm();renderOut()}});
 async function clip(t){try{await navigator.clipboard.writeText(t);return}catch(e){}
  const ta=document.createElement('textarea');ta.value=t;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy')}catch(x){}ta.remove()}
 $('#copy').addEventListener('click',async()=>{const b=$('#copy');await clip($('#pre').dataset.txt);b.textContent='Tersalin';setTimeout(()=>b.textContent=S.view!='all'?'Salin modul':'Salin semua',1500)});
