@@ -8,8 +8,8 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23e8251a'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/base.css?v=7">
-<link rel="stylesheet" href="assets/site.css?v=7">
+<link rel="stylesheet" href="assets/base.css?v=8">
+<link rel="stylesheet" href="assets/site.css?v=8">
 </head>
 <body>
 <header class="nav"><div class="in"><a class="brand" href="index.html"><i></i>Skrip Generat</a><nav class="links"><a href="index.html">Beranda</a><a href="generator.html">Generator</a><a href="panduan.html" aria-current="page">Panduan</a></nav></div></header>
@@ -40,7 +40,7 @@
 <li><b>Dasar:</b> kalau port LAN sudah masuk bridge bawaan, hapus dulu dari bridge lama di Bridge → Ports, atau perintah <code>/interface bridge port add</code> akan gagal.</li>
 <li><b>PPPoE Server:</b> tombol <b>Unduh daftar akun (.csv)</b> menyimpan username dan password pelanggan, bisa dibuka di Excel atau diimpor ke billing. rule filter ISOLIR ditambahkan di urutan bawah. Pindahkan ke atas rule forward lain di IP → Firewall → Filter agar efektif. Untuk mengisolir pelanggan, ganti profil secret-nya ke <code>ISOLIR</code> lalu putus sesinya di PPP → Active.</li>
 <li><b>Hotspot:</b> interface hotspot sebaiknya tidak menjadi anggota bridge LAN. Tombol <b>Cetak kartu voucher</b> membuka halaman siap cetak, 4 kartu per baris. Tombol <b>Unduh voucher (.csv)</b> menyimpan daftar kode untuk arsip.</li>
-<li><b>Load Balance PCC:</b> gateway tiap WAN harus berupa IP. Jika WAN modul Dasar ikut di-balance, default route dan NAT-nya otomatis diserahkan ke modul Load Balance.</li>
+<li><b>Load Balance:</b> ada tiga metode. <b>PCC</b> membagi per koneksi berdasarkan alamat dan port, paling stabil untuk RT/RW. <b>NTH</b> membagi koneksi baru bergiliran, rata tapi situs yang butuh IP tetap (bank, game) bisa terputus. <b>ECMP</b> cukup memakai route multi-gateway, paling sederhana dan ringan.  gateway tiap WAN harus berupa IP. Jika WAN modul Dasar ikut di-balance, default route dan NAT-nya otomatis diserahkan ke modul Load Balance.</li>
 <li><b>Firewall:</b> opsi drop input dari WAN menutup Winbox dari internet. Pastikan Anda masuk lewat LAN, VPN atau tunnel sebelum menjalankan. FastTrack membuat rate-limit PPPoE dan queue tidak jalan.</li>
 </ul>
 

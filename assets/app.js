@@ -1,4 +1,5 @@
 {
+const LBM=[['pcc','LB PCC','PCC (per-connection-classifier)'],['nth','LB NTH','NTH (koneksi bergiliran)'],['ecmp','ECMP','ECMP (route multi-gateway)']];
 const TZ=['Asia/Jakarta','Asia/Makassar','Asia/Jayapura','Asia/Seoul'];
 const M=[
 {id:'basic',name:'Dasar',desc:'Identity, jam, WAN, bridge LAN, DHCP server, DNS dan NAT.',on:true,f:[
@@ -48,11 +49,12 @@ const M=[
  ['uptime','Batas waktu (limit-uptime)','text','1h','Contoh: 1h, 1d, 7d'],
  ['vmode','Mode login','sel','same',[['same','Username = password'],['diff','Username dan password beda']]],
  ['price','Harga di kartu voucher','text','Rp3.000','Hanya untuk cetak voucher']]},
-{id:'lb',name:'Load Balance PCC',desc:'Bagi koneksi ke beberapa ISP dengan PCC, plus failover.',on:false,f:[
+{id:'lb',name:'Load Balance',desc:'Bagi koneksi ke beberapa ISP dengan PCC, NTH atau ECMP, plus failover.',on:false,f:[
+ ['method','Metode','sel','pcc',LBM.map(x=>[x[0],x[2]])],
  ['wans','WAN (interface,gateway,bobot)','area','ether1,192.168.1.1,1\nether2,192.168.2.1,1','Bobot 2 = dapat jatah koneksi 2x. Gateway harus IP.'],
- ['local','Subnet lokal (tidak di-balance)','text','10.0.0.0/8,172.16.0.0/12,192.168.0.0/16'],
- ['cls','Classifier PCC','sel','both-addresses-and-ports',['both-addresses-and-ports','both-addresses','src-address','src-address-and-port']],
- ['failover','Route failover di tabel main','chk',true]]},
+ ['local','Subnet lokal (tidak di-balance)','text','10.0.0.0/8,172.16.0.0/12,192.168.0.0/16','IP tujuan jaringan sendiri: LAN, VLAN, pool PPPoE/hotspot. Tambah 100.64.0.0/10 jika lewat Tailscale/CGNAT.',s=>s.method!='ecmp'],
+ ['cls','Classifier PCC','sel','both-addresses-and-ports',['both-addresses-and-ports','both-addresses','src-address','src-address-and-port'],s=>s.method=='pcc'],
+ ['failover','Route failover di tabel main','chk',true,'',s=>s.method!='ecmp']]},
 {id:'fw',name:'Firewall',desc:'Proteksi router dari WAN, matikan layanan tak terpakai.',on:true,f:[
  ['wan','Interface WAN tambahan','text','','WAN dari modul Dasar dan Load Balance otomatis ikut. Isi jika ada WAN lain.'],
  ['lan','Interface LAN','text','bridge-lan','Untuk neighbor dan MAC-winbox'],
@@ -158,19 +160,25 @@ hotspot(s,o,w){const c=cidr(s.ip);if(!c){w.push('Hotspot: IP harus format IP/CID
  if(n&&S.cmt)o.push('# voucher');
  for(let i=0;i<n;i++){let u;do u=s.vprefix+code(r,L,set);while(seen.has(u));seen.add(u);const pw=s.vmode=='same'?u:code(r,L,CH.num);X.hs.push([u,pw,s.vprof,s.uptime]);
   o.push(`/ip hotspot user add server=hotspot1 name=${q(u)} password=${q(pw)} profile=${nm(s.vprof)}${s.uptime?' limit-uptime='+s.uptime:''} comment=vc-${new Date().toISOString().slice(0,10)}`)}},
-lb(s,o,w){const v7=S.ros=='7',ws=rows(s.wans);if(ws.length<2){w.push('Load balance: minimal 2 WAN');return}
+lb(s,o,w){const v7=S.ros=='7',ws=rows(s.wans),me=s.method||'pcc',RM=v7?'routing-table':'routing-mark';if(ws.length<2){w.push('Load balance: minimal 2 WAN');return}
  for(const x of ws)if(!isIP(x[1]||''))w.push('Load balance: gateway '+x[0]+' harus IP');
- const slots=[];ws.forEach((x,i)=>{for(let k=0;k<lim(x[2]||1,1,10);k++)slots.push(i)});const N=slots.length,T=i=>'to-'+ws[i][0],C=i=>ws[i][0]+'-conn';
+ const T=i=>'to-'+ws[i][0],C=i=>ws[i][0]+'-conn',wt=x=>lim(x[2]||1,1,10),MG='/ip firewall mangle add ',SRC='in-interface-list=!WAN-LB';
+ if(S.cmt)o.push('# metode: '+LBM.find(x=>x[0]==me)[2]);
  o.push('/interface list add name=WAN-LB');for(const x of ws)o.push(`/interface list member add list=WAN-LB interface=${nm(x[0])}`);
- for(const a of list(s.local))o.push(`/ip firewall address-list add list=LOKAL address=${a}`);
+ if(me!='ecmp')for(const a of list(s.local))o.push(`/ip firewall address-list add list=LOKAL address=${a}`);
  if(v7)ws.forEach((x,i)=>o.push(`/routing table add name=${T(i)} fib`));
- ws.forEach((x,i)=>o.push(`/ip firewall mangle add chain=prerouting in-interface=${nm(x[0])} connection-mark=no-mark action=mark-connection new-connection-mark=${C(i)} passthrough=yes`));
- o.push('/ip firewall mangle add chain=prerouting in-interface-list=!WAN-LB dst-address-list=LOKAL action=accept comment="lokal tidak di-balance"');
- slots.forEach((wi,k)=>o.push(`/ip firewall mangle add chain=prerouting in-interface-list=!WAN-LB dst-address-type=!local connection-mark=no-mark per-connection-classifier=${s.cls}:${N}/${k} action=mark-connection new-connection-mark=${C(wi)} passthrough=yes`));
- ws.forEach((x,i)=>o.push(`/ip firewall mangle add chain=prerouting in-interface-list=!WAN-LB connection-mark=${C(i)} action=mark-routing new-routing-mark=${T(i)} passthrough=no`,`/ip firewall mangle add chain=output connection-mark=${C(i)} action=mark-routing new-routing-mark=${T(i)} passthrough=no`));
- ws.forEach((x,i)=>{o.push(`/ip route add dst-address=0.0.0.0/0 gateway=${x[1]} ${v7?'routing-table':'routing-mark'}=${T(i)} check-gateway=ping`);ws.forEach((y,j)=>{if(j!=i)o.push(`/ip route add dst-address=0.0.0.0/0 gateway=${y[1]} ${v7?'routing-table':'routing-mark'}=${T(i)} distance=2 check-gateway=ping comment="cadangan ${T(i)}"`)})});
- if(s.failover)ws.forEach((x,i)=>o.push(`/ip route add dst-address=0.0.0.0/0 gateway=${x[1]} distance=${i+1} check-gateway=ping comment="failover main"`));
+ ws.forEach((x,i)=>o.push(MG+`chain=prerouting in-interface=${nm(x[0])} connection-mark=no-mark action=mark-connection new-connection-mark=${C(i)} passthrough=yes comment="koneksi masuk ${x[0]}"`));
+ if(me!='ecmp'){o.push(MG+`chain=prerouting ${SRC} dst-address-list=LOKAL action=accept comment="lokal tidak di-balance"`);
+  const slots=[];ws.forEach((x,i)=>{for(let k=0;k<wt(x);k++)slots.push(i)});const K=slots.length;
+  if(me=='pcc')slots.forEach((wi,k)=>o.push(MG+`chain=prerouting ${SRC} dst-address-type=!local connection-mark=no-mark per-connection-classifier=${s.cls}:${K}/${k} action=mark-connection new-connection-mark=${C(wi)} passthrough=yes`));
+  else slots.forEach((wi,k)=>o.push(MG+`chain=prerouting ${SRC} dst-address-type=!local connection-state=new connection-mark=no-mark nth=${K-k},1 action=mark-connection new-connection-mark=${C(wi)} passthrough=yes`))}
+ ws.forEach((x,i)=>o.push(MG+`chain=prerouting ${SRC} connection-mark=${C(i)} action=mark-routing new-routing-mark=${T(i)} passthrough=no`,MG+`chain=output connection-mark=${C(i)} action=mark-routing new-routing-mark=${T(i)} passthrough=no`));
+ ws.forEach((x,i)=>{o.push(`/ip route add dst-address=0.0.0.0/0 gateway=${x[1]} ${RM}=${T(i)} check-gateway=ping`);if(me!='ecmp')ws.forEach((y,j)=>{if(j!=i)o.push(`/ip route add dst-address=0.0.0.0/0 gateway=${y[1]} ${RM}=${T(i)} distance=2 check-gateway=ping comment="cadangan ${T(i)}"`)})});
+ if(me=='ecmp'){if(v7){ws.forEach(x=>o.push(`/ip route add dst-address=0.0.0.0/0 gateway=${x[1]} distance=1 check-gateway=ping comment="ECMP"`));if(ws.some(x=>wt(x)>1))w.push('ECMP v7: bobot tidak berlaku, semua gateway dapat bagian sama')}
+  else o.push(`/ip route add dst-address=0.0.0.0/0 gateway=${ws.flatMap(x=>Array(wt(x)).fill(x[1])).join(',')} check-gateway=ping comment="ECMP"`)}
+ else if(s.failover)ws.forEach((x,i)=>o.push(`/ip route add dst-address=0.0.0.0/0 gateway=${x[1]} distance=${i+1} check-gateway=ping comment="failover main"`));
  ws.forEach(x=>o.push(`/ip firewall nat add chain=srcnat out-interface=${nm(x[0])} action=masquerade comment="NAT ${x[0]}"`));
+ if(me=='nth')w.push('NTH: koneksi dibagi bergiliran, situs yang butuh IP tetap (bank, game) bisa terputus. PCC lebih stabil untuk RT/RW');
  if(S.basic.on&&S.basic.wan_type=='dhcp'&&lbOwnsBasic())w.push('Load balance: WAN '+S.basic.wan_if+' pakai DHCP, pastikan gateway yang diisi sama dengan gateway dari modem');
  if(S.basic.on&&S.basic.nat&&!lbOwnsBasic())w.push('Load balance: WAN modul Dasar ('+wanIf()+') tidak ada di daftar WAN load balance')},
 fw(s,o,w){const v7=S.ros=='7',F='/ip firewall filter ';
@@ -202,7 +210,10 @@ queue(s,o,w){if(s.parent)o.push(`/queue simple add name=TOTAL target=${s.ptarget
   o.push(`/queue simple add name=${q(x[0])} target=${x[1].includes('/')?x[1]:x[1]+'/32'} max-limit=${x[2]||'1M/1M'}${s.parent?' parent=TOTAL':''}`)}}
 };
 
-function renderTabs(){const cm=M.find(m=>m.id==S.tab);$('#curMod').textContent=cm.name;$('#onCount').textContent=M.filter(m=>S[m.id].on).length+' aktif';$('#tabs').innerHTML=M.map(m=>`<button role="tab" data-t="${m.id}" aria-selected="${S.tab==m.id}"><span class="dot${S[m.id].on?' on':''}"></span>${esc(m.name)}</button>`).join('');
+let subOpen=S.tab=='lb';
+function renderTabs(){const cm=M.find(m=>m.id==S.tab),lm=LBM.find(x=>x[0]==S.lb.method)||LBM[0];$('#curMod').textContent=cm.id=='lb'?lm[1]:cm.name;$('#onCount').textContent=M.filter(m=>S[m.id].on).length+' aktif';
+ $('#tabs').innerHTML=M.map(m=>{const b=`<button role="tab" data-t="${m.id}" aria-selected="${S.tab==m.id}"${m.id=='lb'?` aria-expanded="${subOpen}" aria-controls="lbsub"`:''}><span class="dot${S[m.id].on?' on':''}"></span><span class="tn">${esc(m.name)}${m.id=='lb'?`<small>${esc(lm[1])}</small>`:''}</span>${m.id=='lb'?'<svg class="chev" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}</button>`;
+  return m.id!='lb'?b:b+`<div class="sub" id="lbsub"${subOpen?'':' hidden'}>${LBM.map(x=>`<button data-lbm="${x[0]}" aria-pressed="${S.lb.method==x[0]}">${esc(x[1])}</button>`).join('')}</div>`}).join('');
  document.querySelectorAll('[data-ros]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.ros==S.ros));$('#cmt').checked=S.cmt;$('#safe').checked=S.safe}
 function renderForm(){const m=M.find(x=>x.id==S.tab),s=S[m.id];
  const fl=m.f.filter(f=>!f[5]||f[5](s)).map(([id,lab,t,d,o,h])=>{const fid=`f-${m.id}-${id}`,hint=typeof o=='string'&&o?`<span class="hint">${esc(o)}</span>`:'',v=s[id];
@@ -238,7 +249,11 @@ function menu(open){drw.classList.toggle('open',open);scr.hidden=!open;mb.setAtt
 mb.addEventListener('click',()=>menu(!drw.classList.contains('open')));
 $('#closeBtn').addEventListener('click',()=>menu(false));scr.addEventListener('click',()=>menu(false));
 document.addEventListener('keydown',e=>{if(e.key=='Escape'&&drw.classList.contains('open'))menu(false)});
-$('#tabs').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;S.tab=b.dataset.t;renderTabs();renderForm();save();if(drw.classList.contains('open')){menu(false);$('#form').scrollIntoView({block:'start'})}});
+$('#tabs').addEventListener('click',e=>{const sb=e.target.closest('[data-lbm]');
+ if(sb){S.lb.method=sb.dataset.lbm;S.tab='lb';subOpen=true;renderTabs();renderForm();renderOut();if(drw.classList.contains('open')){menu(false);$('#form').scrollIntoView({block:'start'})}return}
+ const b=e.target.closest('[data-t]');if(!b)return;
+ if(b.dataset.t=='lb'){subOpen=S.tab=='lb'?!subOpen:true;S.tab='lb';renderTabs();renderForm();save();$('#tabs [data-t=lb]').focus();return}
+ S.tab=b.dataset.t;renderTabs();renderForm();save();if(drw.classList.contains('open')){menu(false);$('#form').scrollIntoView({block:'start'})}});
 document.querySelectorAll('[data-ros]').forEach(b=>b.addEventListener('click',()=>{S.ros=b.dataset.ros;renderTabs();renderOut()}));
 $('#cmt').addEventListener('change',e=>{S.cmt=e.target.checked;renderOut()});
 $('#safe').addEventListener('change',e=>{S.safe=e.target.checked;renderOut()});
@@ -251,7 +266,7 @@ function printVc(){const s=S.hotspot,d=esc(s.dns_name),same=s.vmode=='same';
  const u=URL.createObjectURL(new Blob([html],{type:'text/html'})),a=document.createElement('a');a.href=u;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000)}
 const fm=$('#form');
 fm.addEventListener('input',e=>{const t=e.target,s=S[S.tab];if(t.id=='on')return;if(!t.dataset.k)return;s[t.dataset.k]=t.type=='checkbox'?t.checked:t.value;renderOut()});
-fm.addEventListener('change',e=>{const t=e.target;if(t.id=='on'){S[S.tab].on=t.checked;renderTabs();renderOut();return}if(t.tagName=='SELECT'||t.type=='checkbox'){const id=t.id;renderForm();document.getElementById(id)?.focus()}});
+fm.addEventListener('change',e=>{const t=e.target;if(t.id=='on'){S[S.tab].on=t.checked;renderTabs();renderOut();return}if(t.tagName=='SELECT'||t.type=='checkbox'){const id=t.id;if(t.dataset.k=='method')renderTabs();renderForm();document.getElementById(id)?.focus()}});
 fm.addEventListener('click',e=>{const t=e.target;if(t.id=='reseed'){S.seed=(S.seed*7919+13)%1e9;renderOut()}
  if(t.dataset.csv=='pppoe')dl('akun-pppoe.csv',csv([['username','password','profil'],...X.pppoe]),'text/csv');
  if(t.dataset.csv=='hs')dl('voucher-hotspot.csv',csv([['username','password','profil','limit-uptime'],...X.hs]),'text/csv');
