@@ -241,7 +241,7 @@ function renderForm(){const m=M.find(x=>x.id==S.tab),s=S[m.id];
   if(t=='cards'){const A=Array.isArray(v)&&v.length?v:[{}];
    return `<div class="f w cf" data-ck="${id}"><div class="lh"><span class="lab">${esc(lab)}</span><button type="button" class="addb" data-cadd="${id}">+ ${esc(o.add)}</button></div>${A.map((it,i)=>`<div class="card2" data-ci="${i}"><div class="ch"><b>${esc(o.title)} ${i+1}</b><button type="button" class="del" data-cdel="${i}" aria-label="Hapus ${esc(o.title)} ${i+1}">&times;</button></div><div class="cg">${o.cols.map(([k,l,ph,kind,opt])=>{const val=it[k]??'',fid=`c-${id}-${i}-${k}`;
      const inp=kind=='sel'?`<select id="${fid}" data-c="${k}">${opt.map(([a,b])=>`<option value="${esc(a)}"${a==val?' selected':''}>${esc(b)}</option>`).join('')}</select>`:`<input type="text" id="${fid}" data-c="${k}" value="${esc(val)}" placeholder="${esc(ph)}" spellcheck="false" autocapitalize="off"${kind=='ifc'?' list="iflist"':''}${kind=='num'?' inputmode="numeric"':''}>`;
-     return `<div class="cfld${kind=='w'?' w':''}"><label for="${fid}">${esc(l)}</label>${inp}</div>`}).join('')}</div></div>`).join('')}</div>`}
+     const lb2=k=='table'?(S.ros=='6'?'Routing mark':'Routing table'):l;return `<div class="cfld${kind=='w'?' w':''}"><label for="${fid}">${esc(lb2)}</label>${inp}</div>`}).join('')}</div></div>`).join('')}</div>`}
   if(t=='rows'){const R=String(v||'').split('\n');if(!R.length||R.every(x=>!x))R.splice(0,R.length,'');const tpl=o.cols.map(c=>c[2]?'72px':'minmax(0,1fr)').join(' ')+' 44px';
    return `<div class="f w rf" data-fk="${id}"><div class="lh"><span class="lab">${esc(lab)}</span><button type="button" class="addb" data-add="${id}">+ ${esc(o.add)}</button></div><div class="rhead" style="grid-template-columns:${tpl}">${o.cols.map(c=>`<span>${esc(c[0])}</span>`).join('')}<span></span></div>${R.map((r,ri)=>{const c=r.split(',');return `<div class="rrow" style="grid-template-columns:${tpl}">${o.cols.map((cc,ci)=>`<input type="text"${cc[3]=='ifc'?' list="iflist"':''} value="${esc((c[ci]||'').trim())}" placeholder="${esc(cc[1])}" aria-label="${esc(cc[0])} baris ${ri+1}" spellcheck="false" autocapitalize="off"${cc[2]?' inputmode="numeric"':''}>`).join('')}<button type="button" class="del" data-del="${ri}" aria-label="Hapus baris ${ri+1}">&times;</button></div>`}).join('')}${o.hint?`<span class="hint">${esc(o.hint)}</span>`:''}</div>`}
   if(t=='list'){const L=String(v||'').split(',');
@@ -287,7 +287,7 @@ $('#tabs').addEventListener('click',e=>{const sb=e.target.closest('[data-lbm]');
  const b=e.target.closest('[data-t]');if(!b)return;
  if(b.dataset.t=='lb'){subOpen=S.tab=='lb'?!subOpen:true;S.tab='lb';renderTabs();renderForm();renderOut();$('#tabs [data-t=lb]').focus();return}
  S.tab=b.dataset.t;renderTabs();renderForm();renderOut();if(drw.classList.contains('open')){menu(false);$('#form').scrollIntoView({block:'start'})}});
-document.querySelectorAll('[data-ros]').forEach(b=>b.addEventListener('click',()=>{S.ros=b.dataset.ros;renderTabs();renderOut()}));
+document.querySelectorAll('[data-ros]').forEach(b=>b.addEventListener('click',()=>{S.ros=b.dataset.ros;renderTabs();renderForm();renderOut()}));
 $('#cmt').addEventListener('change',e=>{S.cmt=e.target.checked;renderOut()});
 $('#safe').addEventListener('change',e=>{S.safe=e.target.checked;renderOut()});
 $('#vseg').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;S.view=b.dataset.v;renderOut()});
