@@ -80,6 +80,7 @@ const def=()=>{const s={ros:'7',cmt:true,safe:true,tab:'basic',seed:Date.now()%1
 try{S=JSON.parse(localStorage.getItem('mtgen1'))}catch(e){}
 if(!S||!S.basic)S=def();
 if(S.safe===undefined)S.safe=true;
+if(S.wrap===undefined)S.wrap=true;
 for(const m of M){S[m.id]=S[m.id]||{on:m.on};for(const f of m.f)if(S[m.id][f[0]]===undefined)S[m.id][f[0]]=f[3]}
 const save=()=>{try{localStorage.setItem('mtgen1',JSON.stringify(S))}catch(e){}};
 const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -214,12 +215,16 @@ function renderForm(){const m=M.find(x=>x.id==S.tab),s=S[m.id];
  if(m.id=='hotspot'&&+s.vcount>0)bt.push('<button class="btn" data-csv="hs">Unduh voucher (.csv)</button>','<button class="btn" id="print">Cetak kartu voucher</button>');
  bt.push('<button class="btn" id="reset">Kembalikan default</button>');
  $('#form').innerHTML=`<div class="mhead"><div><h2>${esc(m.name)}</h2><p>${esc(m.desc)}</p></div><label class="chk sw"><input type="checkbox" id="on"${s.on?' checked':''}> Sertakan</label></div><div class="grid">${fl}</div><div class="tools">${bt.join('')}</div>`}
+let SECS=[];
+const CPI='<svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
+const lines=L=>L.map(l=>`<span class="ln">${hl(l)||' '}</span>`).join('');
 function renderOut(){let o=[];const w=[];const on=M.filter(m=>S[m.id].on);X={pppoe:[],hs:[]};
- if(S.cmt)o.push(`# Skrip MikroTik RouterOS v${S.ros} — dibuat ${new Date().toLocaleString('id-ID')}`,`# Modul: ${on.map(m=>m.name).join(', ')||'-'}`);
- for(const m of on){if(S.cmt)o.push('',`# ===== ${m.name.toUpperCase()} =====`);G[m.id](S[m.id],o,w)}
+ const head=S.cmt?[`# Skrip MikroTik RouterOS v${S.ros} — dibuat ${new Date().toLocaleString('id-ID')}`,`# Modul: ${on.map(m=>m.name).join(', ')||'-'}`]:[];
+ SECS=on.map(m=>{const L=[];if(S.cmt)L.push(`# ===== ${m.name.toUpperCase()} =====`);G[m.id](S[m.id],L,w);return{name:m.name,lines:L.map(safe)}});
+ o=[...head];SECS.forEach((s,i)=>{if(o.length&&S.cmt)o.push('');o.push(...s.lines)});
  if(!on.length)o.push('# Belum ada modul yang disertakan');
- o=o.map(safe);
- $('#pre').innerHTML=o.map(hl).join('\n');
+ const cnt=L=>L.filter(l=>l&&!l.startsWith('#')).length;
+ $('#pre').innerHTML=(head.length||!on.length?`<pre class="info">${lines(on.length?head:o)}</pre>`:'')+SECS.map((s,i)=>`<section class="blk"><div class="sh"><div><b>${esc(s.name)}</b><span>${cnt(s.lines)} baris</span></div><button class="cp" data-i="${i}" aria-label="Salin bagian ${esc(s.name)}">${CPI}<span>Salin</span></button></div><pre>${lines(s.lines)}</pre></section>`).join('');
  $('#pre').dataset.txt=o.join('\n');$('#warn').innerHTML=w.map(x=>`<li>${esc(x)}</li>`).join('');
  const n=o.filter(l=>l&&!l.startsWith('#')).length;$('#meta').textContent=`${n} baris · v${S.ros}`;$('#fabn').textContent=n+' baris';
  const act=M.filter(m=>S[m.id].on).map(m=>m.id).join();
@@ -249,11 +254,15 @@ fm.addEventListener('click',e=>{const t=e.target;if(t.id=='reseed'){S.seed=(S.se
  if(t.dataset.csv=='hs')dl('voucher-hotspot.csv',csv([['username','password','profil','limit-uptime'],...X.hs]),'text/csv');
  if(t.id=='print')printVc();
  if(t.id=='reset'){const m=M.find(x=>x.id==S.tab),on=S[m.id].on;S[m.id]={on};for(const f of m.f)S[m.id][f[0]]=f[3];renderForm();renderOut()}});
-$('#copy').addEventListener('click',async()=>{const t=$('#pre').dataset.txt,b=$('#copy');
- try{await navigator.clipboard.writeText(t)}catch(e){const r=document.createRange();r.selectNodeContents($('#pre'));const sel=getSelection();sel.removeAllRanges();sel.addRange(r);try{document.execCommand('copy')}catch(x){}}
- b.textContent='Tersalin';setTimeout(()=>b.textContent='Salin skrip',1500)});
+async function clip(t){try{await navigator.clipboard.writeText(t);return}catch(e){}
+ const ta=document.createElement('textarea');ta.value=t;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy')}catch(x){}ta.remove()}
+$('#copy').addEventListener('click',async()=>{const b=$('#copy');await clip($('#pre').dataset.txt);b.textContent='Tersalin';setTimeout(()=>b.textContent='Salin semua',1500)});
+$('#pre').addEventListener('click',async e=>{const b=e.target.closest('.cp');if(!b)return;const s=SECS[+b.dataset.i];if(!s)return;await clip(s.lines.join('\n'));
+ b.classList.add('ok');b.lastChild.textContent='Tersalin';setTimeout(()=>{b.classList.remove('ok');b.lastChild.textContent='Salin'},1500)});
+const wb=$('#wrap'),setWrap=()=>{$('#pre').classList.toggle('wrap',S.wrap);wb.setAttribute('aria-pressed',S.wrap)};
+wb.addEventListener('click',()=>{S.wrap=!S.wrap;setWrap();save()});
 $('#dl').addEventListener('click',()=>dl((S.basic.identity||'mikrotik').replace(/[^A-Za-z0-9_-]+/g,'-')+'-v'+S.ros+'.rsc',$('#pre').dataset.txt.replace(/\n/g,'\r\n'),'text/plain'));
 const fab=$('#fab'),fio=new IntersectionObserver(es=>{fab.hidden=es[0].isIntersecting});fio.observe($('#hasil'));
-renderTabs();renderForm();renderOut();
+setWrap();renderTabs();renderForm();renderOut();
 function $(s){return document.querySelector(s)}
 }
