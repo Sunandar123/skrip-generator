@@ -85,3 +85,6 @@ main{grid-template-columns:minmax(0,1fr);gap:12px}
 .out{overflow:clip}
 @media(max-width:900px){.code{max-height:none;overflow:visible}.sh{top:68px}.code:not(.wrap) .blk pre{overflow-x:auto}}
 @media(max-width:600px){.obar .acts{width:100%;display:grid;grid-template-columns:1fr 1fr 1.25fr}.obar .acts button{padding:0 8px;font-size:14px}}
+.imp{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:10px 10px 10px 16px;background:#11241a;border-bottom:1px solid #1f3a2a}
+.imp span{display:block;font-size:13.5px;color:#a9c9b5}.imp b{color:#e6f2ea}
+.imp code{display:block;margin-top:4px;font:13.5px "JetBrains Mono",monospace;color:#8ff0b0;overflow-wrap:anywhere}

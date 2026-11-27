@@ -191,7 +191,7 @@ fw(s,o,w){const v7=S.ros=='7',F='/ip firewall filter ';
  o.push(`/ip service set winbox port=${lim(s.winbox,1,65535)}`);
  if(s.mac)o.push('/ip neighbor discovery-settings set discover-interface-list=LAN','/tool mac-server set allowed-interface-list=LAN','/tool mac-server mac-winbox set allowed-interface-list=LAN');
  if(s.fast&&S.pppoe.on)w.push('Firewall: FastTrack aktif bersama PPPoE, rate-limit paket bisa tidak jalan');
- if(s.dropwan&&!mp.length)w.push('Firewall: semua akses dari WAN ditutup. Pastikan Anda remote lewat LAN/tunnel')},
+ if(s.dropwan&&!mp.length)w.push('Firewall: akses dari WAN ditutup. Aktifkan Safe Mode di Winbox (Ctrl+X) sebelum menjalankan, agar perubahan dibatalkan otomatis jika koneksi Anda terputus')},
 vlan(s,o,w){for(const x of rows(s.list)){const id=lim(x[0],1,4094),n=nm(x[1]||'vlan'+id),c=cidr(x[2]);
  o.push(`/interface vlan add name=${n} vlan-id=${id} interface=${nm(s.parent)}`);
  if(!c){w.push('VLAN '+id+': IP harus format IP/CIDR');continue}
@@ -216,6 +216,7 @@ function renderForm(){const m=M.find(x=>x.id==S.tab),s=S[m.id];
  bt.push('<button class="btn" id="reset">Kembalikan default</button>');
  $('#form').innerHTML=`<div class="mhead"><div><h2>${esc(m.name)}</h2><p>${esc(m.desc)}</p></div><label class="chk sw"><input type="checkbox" id="on"${s.on?' checked':''}> Sertakan</label></div><div class="grid">${fl}</div><div class="tools">${bt.join('')}</div>`}
 let SECS=[];
+const fname=()=>(S.basic.identity||'mikrotik').replace(/[^A-Za-z0-9_-]+/g,'-')+'-v'+S.ros+'.rsc';
 const CPI='<svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
 const lines=L=>L.map(l=>`<span class="ln">${hl(l)||' '}</span>`).join('');
 function renderOut(){let o=[];const w=[];const on=M.filter(m=>S[m.id].on);X={pppoe:[],hs:[]};
@@ -225,6 +226,8 @@ function renderOut(){let o=[];const w=[];const on=M.filter(m=>S[m.id].on);X={ppp
  if(!on.length)o.push('# Belum ada modul yang disertakan');
  const cnt=L=>L.filter(l=>l&&!l.startsWith('#')).length;
  $('#pre').innerHTML=(head.length||!on.length?`<pre class="info">${lines(on.length?head:o)}</pre>`:'')+SECS.map((s,i)=>`<section class="blk"><div class="sh"><div><b>${esc(s.name)}</b><span>${cnt(s.lines)} baris</span></div><button class="cp" data-i="${i}" aria-label="Salin bagian ${esc(s.name)}">${CPI}<span>Salin</span></button></div><pre>${lines(s.lines)}</pre></section>`).join('');
+ const tot=cnt(o);if(tot>200)w.unshift(`Skrip ${tot} baris: terlalu panjang untuk ditempel di terminal. Pakai Unduh .rsc lalu import (lihat perintah di atas).`);
+ $('#impcmd').textContent=`/import file-name=${fname()} verbose=yes`;
  $('#pre').dataset.txt=o.join('\n');$('#warn').innerHTML=w.map(x=>`<li>${esc(x)}</li>`).join('');
  const n=o.filter(l=>l&&!l.startsWith('#')).length;$('#meta').textContent=`${n} baris · v${S.ros}`;$('#fabn').textContent=n+' baris';
  const act=M.filter(m=>S[m.id].on).map(m=>m.id).join();
@@ -259,9 +262,10 @@ async function clip(t){try{await navigator.clipboard.writeText(t);return}catch(e
 $('#copy').addEventListener('click',async()=>{const b=$('#copy');await clip($('#pre').dataset.txt);b.textContent='Tersalin';setTimeout(()=>b.textContent='Salin semua',1500)});
 $('#pre').addEventListener('click',async e=>{const b=e.target.closest('.cp');if(!b)return;const s=SECS[+b.dataset.i];if(!s)return;await clip(s.lines.join('\n'));
  b.classList.add('ok');b.lastChild.textContent='Tersalin';setTimeout(()=>{b.classList.remove('ok');b.lastChild.textContent='Salin'},1500)});
+$('#impcp').addEventListener('click',async e=>{const b=e.currentTarget;await clip($('#impcmd').textContent);b.classList.add('ok');b.lastChild.textContent='Tersalin';setTimeout(()=>{b.classList.remove('ok');b.lastChild.textContent='Salin'},1500)});
 const wb=$('#wrap'),setWrap=()=>{$('#pre').classList.toggle('wrap',S.wrap);wb.setAttribute('aria-pressed',S.wrap)};
 wb.addEventListener('click',()=>{S.wrap=!S.wrap;setWrap();save()});
-$('#dl').addEventListener('click',()=>dl((S.basic.identity||'mikrotik').replace(/[^A-Za-z0-9_-]+/g,'-')+'-v'+S.ros+'.rsc',$('#pre').dataset.txt.replace(/\n/g,'\r\n'),'text/plain'));
+$('#dl').addEventListener('click',()=>dl(fname(),$('#pre').dataset.txt.replace(/\n/g,'\r\n'),'text/plain'));
 const fab=$('#fab'),fio=new IntersectionObserver(es=>{fab.hidden=es[0].isIntersecting});fio.observe($('#hasil'));
 setWrap();renderTabs();renderForm();renderOut();
 function $(s){return document.querySelector(s)}

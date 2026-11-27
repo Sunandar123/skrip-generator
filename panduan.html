@@ -8,8 +8,8 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23e8251a'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/base.css?v=6">
-<link rel="stylesheet" href="assets/site.css?v=6">
+<link rel="stylesheet" href="assets/base.css?v=7">
+<link rel="stylesheet" href="assets/site.css?v=7">
 </head>
 <body>
 <header class="nav"><div class="in"><a class="brand" href="index.html"><i></i>Skrip Generat</a><nav class="links"><a href="index.html">Beranda</a><a href="generator.html">Generator</a><a href="panduan.html" aria-current="page">Panduan</a></nav></div></header>
@@ -26,7 +26,8 @@
 
 <h2 id="terminal">2. Jalankan lewat Terminal Winbox</h2>
 <p>Tekan <b>Salin skrip</b> di generator, buka Winbox, klik <b>New Terminal</b>, lalu klik kanan dan pilih Paste. Baris diawali <code>#</code> hanya komentar dan diabaikan router.</p>
-<div class="box">Untuk skrip panjang (ratusan akun atau voucher), cara import di bawah lebih aman karena paste besar kadang terpotong.</div>
+<div class="box">Tempelan sampai sekitar 200 baris umumnya lancar. Untuk skrip lebih panjang (ratusan akun atau voucher), pakai cara import di bawah karena tempelan besar bisa tersendat, terutama lewat aplikasi SSH ponsel atau WebFig. Tombol <b>Salin</b> di tiap bagian memudahkan menempel per modul.</div>
+<div class="box"><b>Safe Mode:</b> sebelum menjalankan modul Firewall, tekan tombol <b>Safe Mode</b> di Winbox atau <code>Ctrl+X</code> di terminal. Jika koneksi Anda terputus karena rule baru, router membatalkan semua perubahan secara otomatis. Tekan lagi untuk menyimpan setelah semuanya aman.</div>
 
 <h2 id="import">3. Import file .rsc</h2>
 <p>Tekan <b>Unduh .rsc</b>, lalu seret file ke jendela Files di Winbox. Setelah itu jalankan:</p>
